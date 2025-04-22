@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/navigation_home"
+        android:icon="@drawable/ic_home"
+        android:title="@string/home" />
+    <item
+        android:id="@+id/navigation_goods_orders"
+        android:enabled="true"
+        android:icon="@drawable/ic_logistic"
+        android:title="@string/orders" />
+    <item
+        android:id="@+id/navigation_cab_orders"
+        android:enabled="true"
+        android:icon="@drawable/ic_logistic"
+        android:title="@string/cab_orders" />
+
+    <item
+        android:id="@+id/navigation_user"
+        android:enabled="true"
+        android:icon="@drawable/user_circle"
+        android:title="@string/acount" />
+
+
+</menu>

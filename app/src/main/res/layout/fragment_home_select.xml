@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="5dp">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:padding="3dp"
+                android:src="@drawable/ic_current_long"
+                app:tint="@color/colorPrimary" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="5dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Current Location"
+                    android:textColor="@color/black"
+                    android:textSize="14dp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/txt_address"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:singleLine="true"
+                    android:text=""
+                    android:textSize="12dp"
+                    android:visibility="visible" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/customerNameText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/our_services"
+                    android:textColor="@color/black"
+                    android:textSize="16dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginTop="15dp"
+                    android:layout_marginBottom="15dp"
+                    android:textStyle="bold" />
+
+                <com.kapstranspvtltd.kaps.utility.CustomRecyclerView
+                    android:id="@+id/servicesRecyclerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+
+                    android:layout_marginEnd="10dp"
+
+                    android:clipToPadding="false"
+                    android:nestedScrollingEnabled="false"
+                    android:scrollbars="vertical" />
+
+
+
+               <LinearLayout
+                   android:layout_width="match_parent"
+                   android:layout_height="wrap_content"
+                   android:gravity="center_vertical"
+
+                   android:orientation="horizontal">
+
+                   <TextView
+                       android:layout_width="0dp"
+                       android:layout_weight="30"
+                       android:layout_height="wrap_content"
+                       android:text="@string/our_offers"
+                       android:textColor="@color/black"
+                       android:textSize="16dp"
+                       android:layout_marginStart="10dp"
+                       android:layout_marginEnd="10dp"
+                       android:layout_marginTop="25dp"
+                       android:layout_marginBottom="25dp"
+                       android:textStyle="bold" />
+
+                   <androidx.cardview.widget.CardView
+                       android:id="@+id/liveRide"
+                       android:visibility="gone"
+                       android:layout_width="58dp"
+                       android:layout_height="58dp"
+                       android:elevation="8dp"
+                       android:layout_marginEnd="15dp"
+                       app:cardCornerRadius="24dp">
+
+                       <RelativeLayout
+                           android:layout_width="match_parent"
+                           android:layout_height="match_parent">
+
+                           <ImageView
+                               android:id="@+id/app_logo"
+                               android:layout_width="55dp"
+                               android:layout_height="55dp"
+                               android:layout_centerInParent="true"
+                               android:src="@drawable/live_ride" />
+
+                           <ProgressBar
+                               android:layout_width="48dp"
+                               android:layout_height="48dp"
+                               android:layout_centerInParent="true"
+                               android:visibility="gone"
+                               android:indeterminateTintMode="src_atop"
+                               android:indeterminateTint="@color/colorPrimary"/>
+                       </RelativeLayout>
+
+                   </androidx.cardview.widget.CardView>
+               </LinearLayout>
+
+                <com.kapstranspvtltd.kaps.utility.CustomRecyclerView
+                    android:id="@+id/recyclerBanner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:clipToPadding="false"
+                    android:nestedScrollingEnabled="false"
+                    android:scrollbars="vertical" />
+
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp" />
+            </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
+
+</FrameLayout>

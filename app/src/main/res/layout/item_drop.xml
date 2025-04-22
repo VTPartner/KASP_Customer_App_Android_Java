@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="1dp"
+    android:gravity="center"
+    app:ignore="NamespaceTypo">
+
+
+    <LinearLayout
+        android:id="@+id/lvl_click"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="5dp">
+
+        <ImageView
+            android:id="@+id/dropMarker"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_destination_long" />
+
+        <TextView
+            android:layout_weight="1"
+            android:id="@+id/txt_dropaddress"
+            android:layout_width="match_parent"
+            android:layout_height="46dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/box"
+            android:maxLines="2"
+            android:drawableRight="@drawable/sixdot"
+            android:padding="5dp"
+            android:textColor="@color/black"
+            android:textSize="12dp" />
+        <ImageView
+            android:id="@+id/img_delete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic__close" />
+    </LinearLayout>
+
+
+</LinearLayout>
