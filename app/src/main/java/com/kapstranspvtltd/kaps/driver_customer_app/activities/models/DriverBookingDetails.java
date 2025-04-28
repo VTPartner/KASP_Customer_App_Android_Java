@@ -274,7 +274,8 @@ public class DriverBookingDetails {
                 return "Delivery Done Do the Payment";
 
             default:
-                return "Cancelled";
+//                return "Cancelled";
+                return  bookingStatus;
         }
     }
 

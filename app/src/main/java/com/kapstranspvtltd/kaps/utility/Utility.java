@@ -120,21 +120,21 @@ public class Utility {
     }
 
     public static void showProgress(final Context context) {
-        try {
-            if (!((Activity) context).isFinishing()) {
-                View layout = LayoutInflater.from(context).inflate(R.layout.popup_loading, null);
-                popupWindow = new Dialog(context, android.R.style.Theme_Translucent);
-                popupWindow.requestWindowFeature(Window.FEATURE_NO_TITLE);
-                popupWindow.setContentView(layout);
-                popupWindow.setCancelable(false);
-                if (!((Activity) context).isFinishing()) {
-                    popupWindow.show();
-                }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        try {
+//            if (!((Activity) context).isFinishing()) {
+//                View layout = LayoutInflater.from(context).inflate(R.layout.popup_loading, null);
+//                popupWindow = new Dialog(context, android.R.style.Theme_Translucent);
+//                popupWindow.requestWindowFeature(Window.FEATURE_NO_TITLE);
+//                popupWindow.setContentView(layout);
+//                popupWindow.setCancelable(false);
+//                if (!((Activity) context).isFinishing()) {
+//                    popupWindow.show();
+//                }
+//            }
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
     }
 
 

@@ -130,7 +130,7 @@ public class DriverPickupLocationActivity extends BaseActivity implements OnMapR
     }
 
     private void initializeViews(Bundle savedInstanceState) {
-        custPrograssbar = new CustPrograssbar();
+//        custPrograssbar = new CustPrograssbar();
         fusedLocationProviderClient = getFusedLocationProviderClient(this);
 
         if (!Places.isInitialized()) {

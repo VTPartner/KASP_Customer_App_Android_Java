@@ -274,7 +274,7 @@ public class ServiceBookingDetails {
                 return "Service Finished Do the Payment";
 
             default:
-                return "Cancelled";
+                return bookingStatus;
         }
     }
 

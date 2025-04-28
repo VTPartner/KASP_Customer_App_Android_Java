@@ -18,6 +18,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Location;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -44,6 +45,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
@@ -96,7 +98,7 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
     private Marker driverMarker;
     private List<LatLng> polylinePoints = new ArrayList<>();
     private Handler locationUpdateHandler = new Handler();
-    private static final int LOCATION_UPDATE_INTERVAL = 10000; // 10 seconds
+    private static final int LOCATION_UPDATE_INTERVAL = 1000; // 10 seconds
 
     private String bookingId;
     private String customerId;
@@ -111,12 +113,15 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
     boolean isFromFCM;
     boolean cabService;
 
+    private BitmapDescriptor driverIcon; // Global variable
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityDriverOngoingBookingBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
+        driverIcon = BitmapDescriptorFactory.fromResource(R.drawable.cab);
         custPrograssbar = new CustPrograssbar();
 
         preferenceManager = new PreferenceManager(this);
@@ -739,19 +744,79 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
         }
     }
 
-    private void updateDriverLocation(LatLng location) {
+//    private void updateDriverLocation(LatLng location) {
+//        runOnUiThread(() -> {
+//            if (driverMarker == null) {
+//                MarkerOptions markerOptions = new MarkerOptions()
+//                        .position(location)
+//                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.van));
+//                driverMarker = mMap.addMarker(markerOptions);
+//            } else {
+//                driverMarker.setPosition(location);
+//            }
+//
+//            updateRouteToDestination(location);
+//        });
+//    }
+
+    private LatLng previousLocation = null; // Add this as a global variable
+    private float previousRotation = 0f; // Add this
+
+
+    private void updateDriverLocation(LatLng newLocation) {
         runOnUiThread(() -> {
             if (driverMarker == null) {
                 MarkerOptions markerOptions = new MarkerOptions()
-                        .position(location)
-                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.van));
+                        .position(newLocation)
+                        .flat(true)
+                        .anchor(0.5f, 0.5f)
+                        .icon(driverIcon);
                 driverMarker = mMap.addMarker(markerOptions);
             } else {
-                driverMarker.setPosition(location);
+                driverMarker.setPosition(newLocation);
+
+                if (previousLocation != null) {
+                    float distance = getDistance(previousLocation, newLocation);
+
+                    if (distance > 0.5) { // Only update rotation if moved more than 2 meters
+                        float bearing = getBearing(previousLocation, newLocation);
+                        previousRotation = bearing; // Save last good rotation
+                    }
+                    driverMarker.setRotation(previousRotation); // Always set the rotation
+                }
             }
 
-            updateRouteToDestination(location);
+            previousLocation = newLocation; // Update for next calculation
+
+            updateRouteToDestination(newLocation);
         });
+    }
+
+    private float getDistance(LatLng from, LatLng to) {
+        float[] result = new float[1];
+        Location.distanceBetween(
+                from.latitude, from.longitude,
+                to.latitude, to.longitude,
+                result
+        );
+        return result[0]; // in meters
+    }
+
+
+    // Helper function to calculate bearing between two LatLng points
+    private float getBearing(LatLng from, LatLng to) {
+        double lat1 = Math.toRadians(from.latitude);
+        double lng1 = Math.toRadians(from.longitude);
+        double lat2 = Math.toRadians(to.latitude);
+        double lng2 = Math.toRadians(to.longitude);
+
+        double dLng = lng2 - lng1;
+        double y = Math.sin(dLng) * Math.cos(lat2);
+        double x = Math.cos(lat1) * Math.sin(lat2) -
+                Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+        double bearing = Math.toDegrees(Math.atan2(y, x));
+
+        return (float) ((bearing + 360) % 360);
     }
 
 

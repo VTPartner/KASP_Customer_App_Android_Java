@@ -152,7 +152,7 @@ public class DriverDropLocationActivity extends BaseActivity implements OnMapRea
     private void initializeViews() {
         pickup = getIntent().getParcelableExtra("pickup");
         cabService = getIntent().getBooleanExtra("cab",true);
-        custPrograssbar = new CustPrograssbar();
+//        custPrograssbar = new CustPrograssbar();
         sessionManager = new SessionManager(this);
         String address = pickup.getAddress();
         if(address == null || address.isEmpty()){

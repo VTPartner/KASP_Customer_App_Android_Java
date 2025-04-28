@@ -126,7 +126,7 @@ public class GoodsPickupMapLocationActivity extends BaseActivity implements OnMa
     }
 
     private void initializeViews(Bundle savedInstanceState) {
-        custPrograssbar = new CustPrograssbar();
+        //custPrograssbar = new CustPrograssbar();
         fusedLocationProviderClient = getFusedLocationProviderClient(this);
 
         if (!Places.isInitialized()) {

@@ -130,7 +130,7 @@ public class CabBookingPickupLocationActivity extends BaseActivity implements On
     }
 
     private void initializeViews(Bundle savedInstanceState) {
-        custPrograssbar = new CustPrograssbar();
+//        custPrograssbar = new CustPrograssbar();
         fusedLocationProviderClient = getFusedLocationProviderClient(this);
 
         if (!Places.isInitialized()) {

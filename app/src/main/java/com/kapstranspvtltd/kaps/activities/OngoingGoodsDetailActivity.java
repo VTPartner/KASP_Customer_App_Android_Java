@@ -12,16 +12,21 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Location;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.Interpolator;
+import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -49,6 +54,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
@@ -98,7 +104,7 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
     private Marker driverMarker;
     private List<LatLng> polylinePoints = new ArrayList<>();
     private Handler locationUpdateHandler = new Handler();
-    private static final int LOCATION_UPDATE_INTERVAL = 10000; // 10 seconds
+    private static final int LOCATION_UPDATE_INTERVAL = 1000; // 1 seconds
 
     private String bookingId;
     private String customerId;
@@ -115,11 +121,17 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
     boolean isFromFCM;
     boolean cabService;
 
+    private BitmapDescriptor driverIcon; // Global variable
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityOngoingGoodsDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        driverIcon = BitmapDescriptorFactory.fromResource(R.drawable.cab);
+
 
         custPrograssbar = new CustPrograssbar();
 
@@ -911,20 +923,182 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
         }
     }
 
-    private void updateDriverLocation(LatLng location) {
+//    private void updateDriverLocation(LatLng location) {
+//        runOnUiThread(() -> {
+//            if (driverMarker == null) {
+//                MarkerOptions markerOptions = new MarkerOptions()
+//                        .position(location)
+//                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.van));
+//                driverMarker = mMap.addMarker(markerOptions);
+//            } else {
+//                driverMarker.setPosition(location);
+//            }
+//
+//            updateRouteToDestination(location);
+//        });
+//    }
+
+
+
+
+//    private void updateDriverLocation(LatLng newLocation) {
+//        runOnUiThread(() -> {
+//            if (driverMarker == null) {
+//                MarkerOptions markerOptions = new MarkerOptions()
+//                        .position(newLocation)
+//                        .flat(true) // Important for rotation
+//                        .anchor(0.5f, 0.5f) // Center the marker
+////                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)); // Use default blue marker
+//                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.cab));
+//                driverMarker = mMap.addMarker(markerOptions);
+//            } else {
+//                driverMarker.setPosition(newLocation);
+//
+//                if (previousLocation != null) {
+//                    float bearing = getBearing(previousLocation, newLocation);
+//                    driverMarker.setRotation(bearing); // Rotate marker towards movement direction
+//                }
+//            }
+//
+//            previousLocation = newLocation; // Update for next calculation
+//
+//            updateRouteToDestination(newLocation);
+//        });
+//    }
+
+    private LatLng previousLocation = null; // Add this as a global variable
+    private float previousRotation = 0f; // Add this
+
+
+    private void updateDriverLocation(LatLng newLocation) {
         runOnUiThread(() -> {
             if (driverMarker == null) {
                 MarkerOptions markerOptions = new MarkerOptions()
-                        .position(location)
-                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.van));
+                        .position(newLocation)
+                        .flat(true)
+                        .anchor(0.5f, 0.5f)
+                        .icon(driverIcon);
                 driverMarker = mMap.addMarker(markerOptions);
             } else {
-                driverMarker.setPosition(location);
+                driverMarker.setPosition(newLocation);
+
+                if (previousLocation != null) {
+                    float distance = getDistance(previousLocation, newLocation);
+
+                    if (distance > 0.5) { // Only update rotation if moved more than 2 meters
+                        float bearing = getBearing(previousLocation, newLocation);
+                        previousRotation = bearing; // Save last good rotation
+                    }
+                    driverMarker.setRotation(previousRotation); // Always set the rotation
+                }
             }
 
-            updateRouteToDestination(location);
+            previousLocation = newLocation; // Update for next calculation
+
+            updateRouteToDestination(newLocation);
         });
     }
+
+    private float getDistance(LatLng from, LatLng to) {
+        float[] result = new float[1];
+        Location.distanceBetween(
+                from.latitude, from.longitude,
+                to.latitude, to.longitude,
+                result
+        );
+        return result[0]; // in meters
+    }
+
+
+    // Helper function to calculate bearing between two LatLng points
+    private float getBearing(LatLng from, LatLng to) {
+        double lat1 = Math.toRadians(from.latitude);
+        double lng1 = Math.toRadians(from.longitude);
+        double lat2 = Math.toRadians(to.latitude);
+        double lng2 = Math.toRadians(to.longitude);
+
+        double dLng = lng2 - lng1;
+        double y = Math.sin(dLng) * Math.cos(lat2);
+        double x = Math.cos(lat1) * Math.sin(lat2) -
+                Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+        double bearing = Math.toDegrees(Math.atan2(y, x));
+
+        return (float) ((bearing + 360) % 360);
+    }
+
+    /**
+     * This is rotating it continuously round and round
+     * @return
+     */
+//    private void updateDriverLocation(LatLng newLocation) {
+//        runOnUiThread(() -> {
+//            if (driverMarker == null) {
+//                MarkerOptions markerOptions = new MarkerOptions()
+//                        .position(newLocation)
+//                        .flat(true)
+//                        .anchor(0.5f, 0.5f)
+////                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+////                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.cab));
+//                        .icon(driverIcon);
+//
+//                driverMarker = mMap.addMarker(markerOptions);
+//            } else {
+//                animateMarker(driverMarker, newLocation);
+//            }
+//
+//            previousLocation = newLocation;
+//
+//            updateRouteToDestination(newLocation);
+//        });
+//    }
+
+
+
+
+    // Helper class to animate marker
+    private void animateMarker(final Marker marker, final LatLng toPosition) {
+        final long duration = 1000; // 1 second movement
+        final Handler handler = new Handler();
+        final long start = SystemClock.uptimeMillis();
+        final LatLng startLatLng = marker.getPosition();
+        final float startRotation = marker.getRotation();
+
+        final float bearing = getBearing(startLatLng, toPosition);
+
+        // Check if movement is significant
+        float[] results = new float[1];
+        Location.distanceBetween(startLatLng.latitude, startLatLng.longitude, toPosition.latitude, toPosition.longitude, results);
+        boolean shouldRotate = results[0] > 1.5; // Only if moved more than 1.5 meters
+
+        final Interpolator interpolator = new AccelerateDecelerateInterpolator();
+
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                long elapsed = SystemClock.uptimeMillis() - start;
+                float t = interpolator.getInterpolation((float) elapsed / duration);
+
+                double lat = (toPosition.latitude - startLatLng.latitude) * t + startLatLng.latitude;
+                double lng = (toPosition.longitude - startLatLng.longitude) * t + startLatLng.longitude;
+
+                float rotation = startRotation;
+                if (shouldRotate) {
+                    rotation = (t * bearing + (1 - t) * startRotation);
+                }
+
+                marker.setPosition(new LatLng(lat, lng));
+                marker.setRotation(rotation);
+                marker.setAnchor(0.5f, 0.5f);
+
+                if (t < 1.0) {
+                    handler.postDelayed(this, 16);
+                }
+            }
+        });
+    }
+
+
+
 
 
     private void updateRouteToDestination(LatLng driverLocation) {

@@ -149,7 +149,7 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
     private void initializeViews() {
         pickup = getIntent().getParcelableExtra("pickup");
         cabService = getIntent().getBooleanExtra("cab",false);
-        custPrograssbar = new CustPrograssbar();
+//        custPrograssbar = new CustPrograssbar();
         sessionManager = new SessionManager(this);
         String address = pickup.getAddress();
         if(address == null || address.isEmpty()){
