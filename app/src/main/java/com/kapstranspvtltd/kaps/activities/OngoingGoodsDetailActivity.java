@@ -2,6 +2,8 @@ package com.kapstranspvtltd.kaps.activities;
 
 import static android.content.ContentValues.TAG;
 
+import static com.kapstranspvtltd.kaps.retrofit.APIClient.resizeBitmap;
+
 import android.Manifest;
 import android.app.AlertDialog;
 import android.app.NotificationChannel;
@@ -11,6 +13,8 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.location.Location;
 import android.media.RingtoneManager;
@@ -130,7 +134,9 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
         binding = ActivityOngoingGoodsDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        driverIcon = BitmapDescriptorFactory.fromResource(R.drawable.cab);
+        Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab);
+        Bitmap smallMarker = resizeBitmap(original, 100, 100); // Resize to 100x100
+        driverIcon = BitmapDescriptorFactory.fromBitmap(smallMarker);
 
 
         custPrograssbar = new CustPrograssbar();
@@ -180,7 +186,11 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
         // Set driver details
         Glide.with(this)
                 .load(bookingDetails.getDriverImage())
-                .placeholder(R.drawable.ic_image_placeholder)
+
+                .placeholder(R.drawable.placeholder)
+                .error(R.drawable.placeholder)
+                .override(100, 100)
+
                 .into(driverImage);
 
         driverName.setText(bookingDetails.getDriverName());
@@ -651,8 +661,10 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
             if (OngoingGoodsDetailActivity.this != null)
                 Glide.with(this)
                         .load(bookingDetails.getDriverImage())
-                        .placeholder(R.drawable.demo_user)
-                        .error(R.drawable.demo_user)
+
+                        .placeholder(R.drawable.placeholder)
+                        .error(R.drawable.placeholder)
+                        .override(100, 100)
                         .into(binding.imgIcon);
         }
 

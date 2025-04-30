@@ -2,6 +2,8 @@ package com.kapstranspvtltd.kaps.driver_customer_app.activities.bookings;
 
 import static android.content.ContentValues.TAG;
 
+import static com.kapstranspvtltd.kaps.retrofit.APIClient.resizeBitmap;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
@@ -17,6 +19,8 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.location.Location;
 import android.media.RingtoneManager;
@@ -35,7 +39,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.NetworkError;
 import com.android.volley.Request;
+import com.android.volley.ServerError;
+import com.android.volley.TimeoutError;
+import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -121,7 +129,9 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
         super.onCreate(savedInstanceState);
         binding = ActivityDriverOngoingBookingBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        driverIcon = BitmapDescriptorFactory.fromResource(R.drawable.cab);
+        Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab);
+        Bitmap smallMarker = resizeBitmap(original, 100, 100); // Resize to 100x100
+        driverIcon = BitmapDescriptorFactory.fromBitmap(smallMarker);
         custPrograssbar = new CustPrograssbar();
 
         preferenceManager = new PreferenceManager(this);
@@ -171,6 +181,7 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
         Glide.with(this)
                 .load(bookingDetails.getDriverImage())
                 .placeholder(R.drawable.ic_image_placeholder)
+                .override(100, 100)
                 .into(driverImage);
 
         driverName.setText(bookingDetails.getDriverName());
@@ -379,13 +390,40 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
                 .setView(dialogBinding.getRoot())
                 .create();
 
+
+        int baseAmount = (int) Math.round(Double.parseDouble(amount));
+        double penaltyAmount = bookingDetails.getPenaltyAmount();
+        int totalPayable = (int) (baseAmount + penaltyAmount);
+
         // Set amount
-        dialogBinding.amountValue.setText("₹" + Math.round(Double.parseDouble(amount)));
+//        dialogBinding.amountValue.setText("₹" + Math.round(Double.parseDouble(amount)));
+
+        dialogBinding.amountValue.setText("₹" + baseAmount);
+        if (penaltyAmount > 0) {
+            dialogBinding.penaltyLabel.setVisibility(View.VISIBLE);
+            dialogBinding.penaltyValue.setVisibility(View.VISIBLE);
+            dialogBinding.totalPayableLabel.setVisibility(View.VISIBLE);
+            dialogBinding.totalPayableValue.setVisibility(View.VISIBLE);
+            dialogBinding.penaltyValue.setText("₹" + penaltyAmount);
+        } else {
+            dialogBinding.penaltyLabel.setVisibility(View.GONE);
+            dialogBinding.penaltyValue.setVisibility(View.GONE);
+            dialogBinding.totalPayableLabel.setVisibility(View.GONE);
+            dialogBinding.totalPayableValue.setVisibility(View.GONE);
+        }
+        dialogBinding.totalPayableValue.setText("₹" + totalPayable);
         // Setup click listeners
         dialogBinding.cancelButton.setOnClickListener(v -> dialog.dismiss());
 
 
         dialog.show();
+        // Set amount
+//        dialogBinding.amountValue.setText("₹" + Math.round(Double.parseDouble(amount)));
+//        // Setup click listeners
+//        dialogBinding.cancelButton.setOnClickListener(v -> dialog.dismiss());
+//
+//
+//        dialog.show();
     }
 
 
@@ -439,12 +477,50 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
                     showLoading(false);
                 },
                 error -> {
-                    showError("Network request failed");
+                    handleError(error);
 
                     showLoading(false);
                 });
 
         VolleySingleton.getInstance(this).addToRequestQueue(request);
+    }
+
+    private void handleError(VolleyError error) {
+        String message;
+        // Check if there's a network response
+        if (error.networkResponse != null) {
+            int statusCode = error.networkResponse.statusCode;
+
+            switch (statusCode) {
+
+                case 404:
+                    message = "No Booking details Found";
+                    finish();
+                    break;
+                case 400:
+                    message = "Bad request";
+                    break;
+                case 500:
+                    message = "Server error";
+                    break;
+                default:
+                    message = "Error fetching plan details";
+                    break;
+            }
+        } else {
+            // Handle cases where there's no network response
+            if (error instanceof NetworkError) {
+                message = "No internet connection";
+            } else if (error instanceof TimeoutError) {
+                message = "Request timed out";
+            } else if (error instanceof ServerError) {
+                message = "Server error";
+            } else {
+                message = "Error fetching plan details";
+            }
+        }
+        showError(message);
+
     }
 
     private DriverBookingDetails parseBookingDetails(JSONObject result) throws JSONException {
@@ -467,6 +543,11 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
 
         details.setRatings(result.optString("ratings"));
         details.setDistance(result.optString("distance"));
+
+        details.setSubCatName(result.optString("sub_cat_name"));
+        details.setServiceName(result.optString("service_name"));
+
+        details.setPenaltyAmount(result.optDouble("penalty_amount"));
 
         //parse
         details.setCouponApplied(result.optString("coupon_applied"));
@@ -524,8 +605,9 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
             if (this != null)
                 Glide.with(this)
                         .load(bookingDetails.getDriverImage())
-                        .placeholder(R.drawable.demo_user)
-                        .error(R.drawable.demo_user)
+                        .placeholder(R.drawable.placeholder)
+                        .error(R.drawable.placeholder)
+                        .override(100, 100)
                         .into(binding.imgIcon);
         }
 

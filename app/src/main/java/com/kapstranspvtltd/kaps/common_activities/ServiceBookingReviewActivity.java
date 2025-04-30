@@ -21,6 +21,7 @@ import com.android.volley.ServerError;
 import com.android.volley.TimeoutError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.kapstranspvtltd.kaps.R;
+import com.kapstranspvtltd.kaps.activities.HomeActivity;
 import com.kapstranspvtltd.kaps.activities.models.GuidelineModel;
 import com.kapstranspvtltd.kaps.activities.pickup_activities.CouponCodeActivity;
 import com.kapstranspvtltd.kaps.activities.pickup_activities.SearchingGoodsDriverActivity;
@@ -349,7 +350,7 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
                     jsonBody.put("drop_address", drop.getAddress());
                 }
 
-                jsonBody.put("sub_cat_id", sub_cat_id);
+                jsonBody.put("sub_cat_id", Integer.parseInt(sub_cat_id));
                 jsonBody.put("service_id", serviceID);
                 jsonBody.put("radius_km", 5);
                 jsonBody.put("customer_id", customerId);
@@ -406,28 +407,46 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
 
                                 bookingId = results.getJSONObject(0).getString("booking_id");
 
-                                Intent intent;
-                                if (categoryId == 3) {
-                                    intent = new Intent(this, JcbCraneSearchingActivity.class);
-                                    intent.putExtra("booking_id", bookingId);
-                                    intent.putExtra("pickup", pickup);
+                                if (isScheduledBooking) {
+                                    Toast.makeText(this, "Your booking has been scheduled. A agent will be assigned at the scheduled time.", Toast.LENGTH_LONG).show();
+                                    Intent intent = new Intent(this, HomeActivity.class);
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+                                    startActivity(intent);
 
-                                    startActivity(intent);
-                                } else if (categoryId == 4) {
-                                    intent = new Intent(this, DriverAgentSearchingActivity.class);
-                                    intent.putExtra("booking_id", bookingId);
-                                    intent.putExtra("pickup", pickup);
-                                    intent.putExtra("drop", drop);
-                                    startActivity(intent);
                                 } else {
-                                    if (categoryId == 5) {
-                                        intent = new Intent(this, HandymanSearchingActivity.class);
-                                        intent.putExtra("booking_id", bookingId);
-                                        intent.putExtra("pickup", pickup);
+                                    Intent intent;
 
-                                        startActivity(intent);
+                                    switch (categoryId) {
+
+
+                                        case 3: // JCB/Crane
+                                            intent = new Intent(this, JcbCraneSearchingActivity.class);
+                                            intent.putExtra("booking_id", bookingId);
+                                            intent.putExtra("pickup", pickup);
+                                            startActivity(intent);
+                                            break;
+
+                                        case 4: // Driver Agent
+                                            intent = new Intent(this, DriverAgentSearchingActivity.class);
+                                            intent.putExtra("booking_id", bookingId);
+                                            intent.putExtra("pickup", pickup);
+                                            intent.putExtra("drop", drop);
+                                            startActivity(intent);
+                                            break;
+
+                                        case 5: // Handyman
+                                            intent = new Intent(this, HandymanSearchingActivity.class);
+                                            intent.putExtra("booking_id", bookingId);
+                                            intent.putExtra("pickup", pickup);
+                                            startActivity(intent);
+                                            break;
+
+                                        default:
+                                            Toast.makeText(this, "Invalid category.", Toast.LENGTH_SHORT).show();
+                                            break;
                                     }
                                 }
+
 
 
                             } else {

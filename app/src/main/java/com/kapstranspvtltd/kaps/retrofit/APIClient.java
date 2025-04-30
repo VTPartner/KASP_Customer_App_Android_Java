@@ -1,6 +1,8 @@
 package com.kapstranspvtltd.kaps.retrofit;
 
 
+import android.graphics.Bitmap;
+
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
@@ -20,6 +22,21 @@ public class APIClient {
     //        public static String baseUrl = "http://100.24.44.74:8000/api/vt_partner/";
 //        public static String baseUrl = "http://100.24.44.74/api/vt_partner/";
     public static String MAP_KEY = "AIzaSyAAlmEtjJOpSaJ7YVkMKwdSuMTbTx39l_o";
+
+    public static Bitmap resizeBitmap(Bitmap image, int maxWidth, int maxHeight) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        float bitmapRatio = (float) width / (float) height;
+        if (bitmapRatio > 1) {
+            width = maxWidth;
+            height = (int) (width / bitmapRatio);
+        } else {
+            height = maxHeight;
+            width = (int) (height * bitmapRatio);
+        }
+        return Bitmap.createScaledBitmap(image, width, height, true);
+    }
 
 
     public static UserService getInterface() {

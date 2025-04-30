@@ -238,6 +238,16 @@ public class ServiceBookingDetails {
     private String couponApplied;
     private double couponDiscountAmount;
 
+    public double getPenaltyAmount() {
+        return penaltyAmount;
+    }
+
+    public void setPenaltyAmount(double penaltyAmount) {
+        this.penaltyAmount = penaltyAmount;
+    }
+
+    private double penaltyAmount;
+
     public double getSetBeforeCouponAmount() {
         return setBeforeCouponAmount;
     }

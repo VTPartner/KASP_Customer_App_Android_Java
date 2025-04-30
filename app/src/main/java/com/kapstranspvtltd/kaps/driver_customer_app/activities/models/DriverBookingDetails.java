@@ -8,6 +8,15 @@ import java.util.Locale;
 
 public class DriverBookingDetails {
 
+    public double getPenaltyAmount() {
+        return penaltyAmount;
+    }
+
+    public void setPenaltyAmount(double penaltyAmount) {
+        this.penaltyAmount = penaltyAmount;
+    }
+
+    private double penaltyAmount;
     public String getBookingId() {
         return bookingId;
     }

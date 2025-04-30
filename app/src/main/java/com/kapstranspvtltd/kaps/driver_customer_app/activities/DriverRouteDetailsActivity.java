@@ -253,7 +253,7 @@ public class DriverRouteDetailsActivity extends BaseActivity implements OnMapRea
                                 totalDistance += route.legs[0].distance.inMeters;
                                 totalDuration += route.legs[0].duration.inSeconds;
 
-                                totalDistanceValue = totalDistance / 1000.0; // Convert to km
+                              Glb.totalDistanceValue =  totalDistanceValue = totalDistance / 1000.0; // Convert to km
                                 totalDurationValue = totalDuration / 60;     // Convert to minutes
 
                                 System.out.println("totalDistanceValue::"+totalDistanceValue);
