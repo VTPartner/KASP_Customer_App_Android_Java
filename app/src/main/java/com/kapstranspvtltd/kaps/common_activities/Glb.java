@@ -1,5 +1,6 @@
 package com.kapstranspvtltd.kaps.common_activities;
 
+import com.kapstranspvtltd.kaps.activities.models.VehicleModel;
 import com.kapstranspvtltd.kaps.utility.Drop;
 import com.kapstranspvtltd.kaps.utility.Pickup;
 
@@ -23,4 +24,7 @@ public class Glb {
     public static Drop drop;
     public static String serviceName;
     public static int serviceID;
+    public static boolean addStopClicked = false;
+
+    public static VehicleModel selectedVehicle = null;
 }

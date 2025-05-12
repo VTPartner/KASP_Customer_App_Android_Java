@@ -192,6 +192,7 @@ public class AllOtherServicesActivity extends AppCompatActivity implements Other
         handleNoDataFound();
         Glb.serviceID = service.getServiceId();
         Glb.serviceName = service.getServiceName();
+        Glb.service_base_price = String.valueOf(service.getServiceBasePrice());
 //        Intent resultIntent = new Intent(this, ServiceDurationActivity.class);
 //        resultIntent.putExtra("category_name", categoryName);
 //        resultIntent.putExtra("category_id", categoryId);

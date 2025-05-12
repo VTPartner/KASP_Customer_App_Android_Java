@@ -281,8 +281,12 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
         });
 
         btnConfirm.setOnClickListener(v -> {
-
-            if ( cabService == false && !TextUtils.isEmpty(edMobile.getText()) && !TextUtils.isEmpty(edName.getText())) {
+if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString().trim().isEmpty()){
+    dialog.dismiss();
+    showError("Please provide the receiver contact details.");
+    return;
+}
+            if ( cabService == false && !edMobile.getText().toString().trim().isEmpty() && !TextUtils.isEmpty(edName.getText())) {
                 if(addressBundle == null || addressBundle.isEmpty()){
                     dialog.dismiss();
                     showError("Please select the drop location first");
@@ -295,7 +299,15 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
                 drop.setAddress(addressBundle.getString("drop_fulladdress"));
                 drop.setRname(edName.getText().toString().trim());
                 drop.setRmobile(edMobile.getText().toString().trim());
-                dropList.add(drop);
+
+                if (dropList.size() == 3) {
+                    // Replace the last drop with the new one
+                    dropList.set(2, drop);
+                    Toast.makeText(this, "Last drop location updated", Toast.LENGTH_SHORT).show();
+                } else {
+                    dropList.add(drop);
+                }
+
 
                 startActivity(new Intent(this, ReviewMapActivity.class)
                         .putExtra("cab",cabService)

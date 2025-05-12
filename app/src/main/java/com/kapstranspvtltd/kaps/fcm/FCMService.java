@@ -22,6 +22,7 @@ import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.kapstranspvtltd.kaps.activities.HomeActivity;
 import com.kapstranspvtltd.kaps.activities.OngoingGoodsDetailActivity;
+import com.kapstranspvtltd.kaps.common_activities.ScheduledBookingsActivity;
 import com.kapstranspvtltd.kaps.driver_customer_app.activities.bookings.DriverOngoingBookingDetailsActivity;
 import com.kapstranspvtltd.kaps.handyman_customer_app.activities.bookings.HandymanOngoingBookingDetailsActivity;
 import com.kapstranspvtltd.kaps.jcb_crane_customer_app.activities.bookings.JcbCraneBookingDetailsActivity;
@@ -141,6 +142,12 @@ public class FCMService extends FirebaseMessagingService {
             String body = data.get("body");
             showRegularNotification(title != null ? title : "", body != null ? body : "", data);
             switch (intent) {
+                case "booking_expired":
+                    Intent s = new Intent(this, ScheduledBookingsActivity.class);
+                    s.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
+                            Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(s);
+                    break;
                 case "customer_home":
                     System.out.println("customer_home:: send to home page here");
                     preferenceManager.saveBooleanValue("live_ride",false);

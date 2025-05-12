@@ -62,6 +62,7 @@ import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 import com.kapstranspvtltd.kaps.activities.BaseActivity;
+import com.kapstranspvtltd.kaps.common_activities.Glb;
 import com.kapstranspvtltd.kaps.network.VolleySingleton;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.CustPrograssbar;
@@ -388,6 +389,7 @@ public class GoodsPickupMapLocationActivity extends BaseActivity implements OnMa
         }
     }
 
+/*
     private void checkPincodeAvailability(String pincode,String name,String mobile) {
         try {
             String url = APIClient.baseUrl + "allowed_pin_code";
@@ -415,6 +417,81 @@ public class GoodsPickupMapLocationActivity extends BaseActivity implements OnMa
                                     preferenceManager.saveStringValue("city_id", cityId);
                                     proceedToNextScreen(name, mobile);
 
+                                } else {
+                                    showError("No service available in this area");
+                                }
+                            } else if (response.has("message")) {
+                                // Show error message from API
+                                showError(response.getString("message"));
+                            } else {
+                                showError("Service not available in this area");
+                            }
+                        } catch (Exception e) {
+                            Log.e("PincodeCheck", "Error parsing response: " + e.getMessage());
+                            showError("Error processing response");
+                        }
+                    },
+                    error -> {
+                        showLoading(false);
+                        if (error.networkResponse != null && error.networkResponse.statusCode == 404) {
+                            showError("Service not available in this area");
+                        } else {
+                            handleVolleyError(error);
+                        }
+                    }
+            ) {
+                @Override
+                public Map<String, String> getHeaders() {
+                    Map<String, String> headers = new HashMap<>();
+                    headers.put("Content-Type", "application/json");
+                    return headers;
+                }
+            };
+
+            request.setRetryPolicy(new DefaultRetryPolicy(
+                    30000,
+                    DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                    DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+            ));
+
+            VolleySingleton.getInstance(this).addToRequestQueue(request);
+
+        } catch (Exception e) {
+            showLoading(false);
+            Log.e("PincodeCheck", "Error creating request: " + e.getMessage());
+            showError("Failed to check pincode availability");
+        }
+    }
+*/
+
+    private void checkPincodeAvailability(String pincode, String name, String mobile) {
+        try {
+            String url = APIClient.baseUrl + "allowed_pin_code";
+
+            JSONObject jsonBody = new JSONObject();
+            jsonBody.put("pincode", pincode);
+
+            JsonObjectRequest request = new JsonObjectRequest(
+                    Request.Method.POST,
+                    url,
+                    jsonBody,
+                    response -> {
+                        showLoading(false);
+                        try {
+                            // Check if results array exists and is not empty
+                            if (response.has("results")) {
+                                JSONArray results = response.getJSONArray("results");
+                                if (results.length() > 0) {
+                                    // Get the city_id and outstation_distance from the first result
+                                    JSONObject result = results.getJSONObject(0);
+                                    String cityId = result.getString("city_id");
+                                    double outstationDistance = result.getDouble("outstation_distance");
+                                    System.out.println("cityID :"+cityId+" outstationDistance::"+outstationDistance);
+                                    // Store both values
+                                    preferenceManager.saveStringValue("city_id", cityId);
+                                    preferenceManager.saveFloatValue("outstation_distance", (float) outstationDistance);
+
+                                    proceedToNextScreen(name, mobile);
                                 } else {
                                     showError("No service available in this area");
                                 }
@@ -541,6 +618,7 @@ if(cabService){
             String mobile = edMobile.getText().toString().trim();
             if(cabService == false){
                 if(name == null || name.isEmpty() || mobile == null || mobile.isEmpty()){
+                    dialog.dismiss();
                     showError("Please provide sender contact details");
                     return;
                 }
@@ -646,6 +724,7 @@ if(cabService){
         if(dropList != null){
             dropList.clear();
         }
+        Glb.addStopClicked = false;
     }
 
     @Override

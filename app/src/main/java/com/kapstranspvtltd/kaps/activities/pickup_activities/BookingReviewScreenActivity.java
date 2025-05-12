@@ -52,6 +52,8 @@ import com.kapstranspvtltd.kaps.activities.models.VehicleModel;
 import com.kapstranspvtltd.kaps.adapters.GoodsTypeAdapter;
 import com.kapstranspvtltd.kaps.adapters.GuidelinesAdapter;
 import com.kapstranspvtltd.kaps.adapters.VehicleAdapter;
+import com.kapstranspvtltd.kaps.common_activities.Glb;
+import com.kapstranspvtltd.kaps.common_activities.Glb.*;
 import com.kapstranspvtltd.kaps.databinding.ItemDropBinding;
 import com.kapstranspvtltd.kaps.fcm.AccessToken;
 import com.kapstranspvtltd.kaps.model.Coupon;
@@ -146,7 +148,9 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         binding = ActivityBookingReviewScreenBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         preferenceManager = new PreferenceManager(this);
-        txtGoodType = binding.txtGoodType;
+
+        selectedVehicle = Glb.selectedVehicle;
+
         binding.txtGoodType.setOnClickListener(v -> showGoodsTypeBottomSheet());
         // Get intent extras
         if (getIntent() != null) {
@@ -187,10 +191,10 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         setupBodyTypeSpinner();
         initViews();
         getIntentData();
-        setupRecyclerViews();
+        //setupRecyclerViews();
         //fetchGoodsTypes();
         // Load all required data
-        loadVehicles();
+        //loadVehicles();
         fetchGuidelines();
         if (cabService) {
             binding.goodsLyt.setVisibility(View.GONE);
@@ -224,6 +228,8 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         });
 
         binding.selectedTimeText.setOnClickListener(v -> showTimePickerDialog());
+
+        binding.checkServiceDetails.setOnClickListener(v -> finish());
     }
 
     private void showTimePickerDialog() {
@@ -364,19 +370,19 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
     }
 
     private void setupRecyclerViews() {
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
-        binding.recyclerVehicles.setLayoutManager(layoutManager);
-        binding.recyclerVehicles.setItemAnimator(new DefaultItemAnimator());
-
-        // Initialize adapter with empty list
-        vehicleAdapter = new VehicleAdapter(
-                this,
-                new ArrayList<>(),
-                this,
-                totalDistance
-        );
-        binding.recyclerVehicles.setAdapter(vehicleAdapter);
+//        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+//        layoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
+//        binding.recyclerVehicles.setLayoutManager(layoutManager);
+//        binding.recyclerVehicles.setItemAnimator(new DefaultItemAnimator());
+//
+//        // Initialize adapter with empty list
+//        vehicleAdapter = new VehicleAdapter(
+//                this,
+//                new ArrayList<>(),
+//                this,
+//                totalDistance
+//        );
+//        binding.recyclerVehicles.setAdapter(vehicleAdapter);
     }
 
     // Implement RecyclerTouchListener methods
@@ -455,43 +461,49 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
     private void updateFareBreakdown() {
         // Format currency
         DecimalFormat df = new DecimalFormat("0.00");
-        if (selectedVehicle != null) tripFare = selectedVehicle.getPricePerKm();
-        double baseFare = selectedVehicle.getBaseFare();
-        if (tripFare < baseFare) {
-            binding.applyCouponLayout.setVisibility(View.GONE);
-            tripFare = baseFare;
-        } else {
-            binding.applyCouponLayout.setVisibility(View.VISIBLE);
-        }
-
-        // Update trip fare
-        binding.tripFareAmount.setText(String.format("₹%s", df.format(tripFare)));
-
-        // Show/hide coupon discount
-        if (isCouponApplied && couponDiscountAmount > 0) {
-            binding.couponLayout.setVisibility(View.VISIBLE);
-            binding.couponDiscountAmount.setText(String.format("-₹%s", df.format(couponDiscountAmount)));
-        } else {
-            binding.couponLayout.setVisibility(View.GONE);
-        }
-
-        // Calculate net fare
-        netFare = tripFare - couponDiscountAmount;
-        binding.netFareAmount.setText(String.format("₹%s", df.format(netFare)));
-
-        // Calculate final amount (rounded)
-        finalAmount = Math.round(netFare);
-        binding.finalAmount.setText(String.format("₹%d", (int) finalAmount));
-
-        // Update bottom sheet amount
-        binding.bottomTotalAmount.setText(String.format("₹%d", (int) finalAmount));
-
-        // Update base fare note if needed
         if (selectedVehicle != null) {
-            binding.baseFareNote.setText(String.format(
-                    "If amount is less than base fare then you have to pay base fare. ₹%.2f",
-                    selectedVehicle.getBaseFare()
-            ));
+
+
+            tripFare = selectedVehicle.getPricePerKm();
+
+
+            double baseFare = selectedVehicle.getBaseFare();
+            if (tripFare < baseFare) {
+                binding.applyCouponLayout.setVisibility(View.GONE);
+                tripFare = baseFare;
+            } else {
+                binding.applyCouponLayout.setVisibility(View.VISIBLE);
+            }
+
+            // Update trip fare
+            binding.tripFareAmount.setText(String.format("₹%s", df.format(tripFare)));
+
+            // Show/hide coupon discount
+            if (isCouponApplied && couponDiscountAmount > 0) {
+                binding.couponLayout.setVisibility(View.VISIBLE);
+                binding.couponDiscountAmount.setText(String.format("-₹%s", df.format(couponDiscountAmount)));
+            } else {
+                binding.couponLayout.setVisibility(View.GONE);
+            }
+
+            // Calculate net fare
+            netFare = tripFare - couponDiscountAmount;
+            binding.netFareAmount.setText(String.format("₹%s", df.format(netFare)));
+
+            // Calculate final amount (rounded)
+            finalAmount = Math.round(netFare);
+            binding.finalAmount.setText(String.format("₹%d", (int) finalAmount));
+
+            // Update bottom sheet amount
+            binding.bottomTotalAmount.setText(String.format("₹%d", (int) finalAmount));
+
+            // Update base fare note if needed
+            if (selectedVehicle != null) {
+                binding.baseFareNote.setText(String.format(
+                        "If amount is less than base fare then you have to pay base fare. ₹%.2f",
+                        selectedVehicle.getBaseFare()
+                ));
+            }
         }
     }
 
@@ -744,6 +756,30 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         binding.txtDropaddress.setText(drop.getAddress());
 
         binding.btnBook.setOnClickListener(v -> saveBookingDetails());
+
+        //Vehicle details
+        if (selectedVehicle != null) {
+            binding.serviceVehicleName.setText(selectedVehicle.getVehicleName());
+            binding.serviceDurationDetails.setText("[" + totalDistance + " km  - " + exactTime + "]");
+            binding.btnBook.setText("Book " + selectedVehicle.getVehicleName());
+
+            // Show/hide body type spinner based on vehicle ID
+            binding.bodyTypeLayout.setVisibility(selectedVehicle.getVehicleId() != 2 ? View.VISIBLE : View.GONE);
+
+            // Load vehicle image
+            Glide.with(this)
+                    .load(selectedVehicle.getVehicleImage())
+                    .placeholder(R.drawable.placeholder)
+                    .error(R.drawable.ic_image_placeholder)
+                    .into(binding.vehicleImg);
+
+            updateFareBreakdown();
+        } else {
+            showError("No vehicle selected");
+            finish();
+        }
+
+        txtGoodType = binding.txtGoodType;
     }
 
     private void saveBookingDetails() {
@@ -787,6 +823,7 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
             JSONObject jsonBody = new JSONObject();
             try {
                 jsonBody.put("price_type", priceTypeId);
+                jsonBody.put("booking_type_locations", priceTypeId.equalsIgnoreCase("1") ? 1 : 2); //it is save whether local or outstation booking
                 jsonBody.put("radius_km", 5);
                 jsonBody.put("vehicle_id", selectedVehicle.getVehicleId());
                 jsonBody.put("customer_id", customerId);
@@ -849,6 +886,7 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
                             JSONArray results = response.getJSONArray("result");
                             if (results.length() > 0) {
                                 String bookingId = "";
+                                Glb.addStopClicked = false;
                                 if (cabService) {
                                     bookingId = results.getJSONObject(0).getString("cab_booking_id");
                                 } else {
@@ -920,9 +958,27 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
     }
 
     private void getIntentData() {
-        totalDistance = getIntent().getDoubleExtra("total_distance", 0.0);
-        totalDuration = getIntent().getLongExtra("total_time", 0);
-        cityId = preferenceManager.getStringValue("city_id");
+        try {
+            totalDistance = getIntent().getDoubleExtra("total_distance", 0.0);
+            totalDuration = getIntent().getLongExtra("total_time", 0);
+            cityId = preferenceManager.getStringValue("city_id");
+
+            // Validate distance
+            if (totalDistance <= 0) {
+                showError("Invalid distance calculated");
+                finish();
+                return;
+            }
+
+            // Log the values for debugging
+            Log.d("BookingReview", "Distance: " + totalDistance + " km");
+            Log.d("BookingReview", "Duration: " + formatDuration(totalDuration));
+
+        } catch (Exception e) {
+            Log.e("BookingReview", "Error getting intent data", e);
+            showError("Error processing route data");
+            finish();
+        }
     }
 
 
@@ -998,7 +1054,7 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
                                             this,
                                             totalDistance
                                     );
-                                    binding.recyclerVehicles.setAdapter(vehicleAdapter);
+//                                    binding.recyclerVehicles.setAdapter(vehicleAdapter);
                                 }
                             } catch (Exception e) {
                                 showError("Error loading vehicles: " + e.getMessage());
@@ -1126,105 +1182,9 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         return basePrice;
     }
 
-    private void loadVehiclesOld() {
-        showLoading(true);
 
-        try {
-            if (cityId.isEmpty()) {
-                showError("We do not serve this route");
-                finish();
-                return;
-            }
 
-            String url = APIClient.baseUrl + "all_vehicles_with_price_details";
-            JSONObject jsonBody = new JSONObject();
-            jsonBody.put("category_id", cabService ? 2 : 1); // Replace with your category ID
-            jsonBody.put("price_type_id", "1");
-            jsonBody.put("city_id", cityId);
 
-            JsonObjectRequest request = new JsonObjectRequest(
-                    Request.Method.POST,
-                    url,
-                    jsonBody,
-                    response -> {
-                        showLoading(false);
-                        try {
-                            List<VehicleModel> vehiclesList = new ArrayList<>();
-                            JSONArray jsonArray = response.getJSONArray("results");
-
-                            for (int i = 0; i < jsonArray.length(); i++) {
-                                JSONObject vehicleObject = jsonArray.getJSONObject(i);
-                                double startingPricePerKm = vehicleObject.getDouble("starting_price_per_km");
-                                double fixedTotalPrice = totalDistance * startingPricePerKm;
-
-// Format to 2 decimal places
-                                DecimalFormat df = new DecimalFormat("0.00");
-                                String formattedPrice = df.format(fixedTotalPrice);
-
-// If you need the double value back
-                                double roundedPrice = Double.parseDouble(formattedPrice);
-
-// For example: 3.308 * 35.0 = 115.78
-                                System.out.println("Total Distance: " + df.format(totalDistance) + " km");
-                                System.out.println("Price per km: " + df.format(startingPricePerKm) + " Rs");
-                                System.out.println("Total Price: " + formattedPrice + " Rs");
-
-                                VehicleModel vehicle = new VehicleModel(
-                                        vehicleObject.getInt("vehicle_id"),
-                                        vehicleObject.getString("vehicle_name"),
-                                        vehicleObject.getString("image"),
-                                        vehicleObject.getDouble("base_fare"),
-                                        roundedPrice,
-                                        vehicleObject.getString("size_image"),
-                                        vehicleObject.getString("weight"),
-                                        vehicleObject.getInt("outstation_distance")
-                                );
-                                vehiclesList.add(vehicle);
-                            }
-
-                            if (vehiclesList.isEmpty()) {
-                                showError("No vehicle price available for this location");
-                            } else {
-                                vehicleAdapter = new VehicleAdapter(
-                                        this,
-                                        vehiclesList,
-                                        this,
-                                        totalDistance
-                                );
-                                binding.recyclerVehicles.setAdapter(vehicleAdapter);
-                            }
-                        } catch (Exception e) {
-                            showError("Error loading vehicles: " + e.getMessage());
-                        }
-                    },
-                    error -> {
-                        showLoading(false);
-                        handleVolleyError(error);
-                    }
-            ) {
-                @Override
-                public Map<String, String> getHeaders() {
-                    Map<String, String> headers = new HashMap<>();
-                    headers.put("Content-Type", "application/json");
-                    return headers;
-                }
-            };
-
-            request.setRetryPolicy(new DefaultRetryPolicy(
-                    30000,
-                    DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-                    DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-            ));
-
-            VolleySingleton.getInstance(this).addToRequestQueue(request);
-
-        } catch (Exception e) {
-            showLoading(false);
-            showError("Failed to load vehicles: " + e.getMessage());
-        }
-    }
-
-    String selectedGoodsTypeId = "1";
 
 
     private void handleVolleyError(VolleyError error) {

@@ -17,6 +17,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DefaultItemAnimator;
@@ -43,11 +44,13 @@ import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
 import com.google.maps.model.TravelMode;
 import com.kapstranspvtltd.kaps.activities.BaseActivity;
+import com.kapstranspvtltd.kaps.common_activities.Glb;
 import com.kapstranspvtltd.kaps.utility.Drop;
 import com.kapstranspvtltd.kaps.utility.Pickup;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.databinding.ActivityReviewMapBinding;
 import com.kapstranspvtltd.kaps.databinding.ItemDropBinding;
+import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,12 +82,15 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
     private ExecutorService executorService;
     boolean cabService;
 
+    PreferenceManager preferenceManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityReviewMapBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        preferenceManager = new PreferenceManager(this);
         // Initialize ExecutorService
         executorService = Executors.newSingleThreadExecutor();
 
@@ -122,7 +128,8 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
 
     private void setupClickListeners() {
 
-        binding.btnProce.setOnClickListener(v -> startActivity(new Intent(this, BookingReviewScreenActivity.class)
+//        binding.btnProce.setOnClickListener(v -> startActivity(new Intent(this, BookingReviewScreenActivity.class)
+        binding.btnProce.setOnClickListener(v -> startActivity(new Intent(this, AllGoodsVehiclesActivity.class)
                 .putExtra("cab",cabService)
                 .putExtra("total_distance", totalDistanceValue)
                 .putExtra("total_time", totalDuration)
@@ -133,7 +140,10 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
                 .putExtra("pickup", pickup)
                 .putExtra("drop", drop)));
 
-        binding.txtAddnewstop.setOnClickListener(v -> finish());
+        binding.txtAddnewstop.setOnClickListener(v -> {
+            Glb.addStopClicked = true;
+            finish();
+        });
     }
 
     private void setupItemTouchHelper() {
@@ -339,6 +349,8 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
         }
     }
 
+
+
     private void updateDistanceAndTime() {
         // Format distance
         String distanceText;
@@ -359,8 +371,11 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
             durationText = String.format("%dm", minutes);
         }
 
-        // Determine booking type
-        isOutstation = kilometers > OUTSTATION_THRESHOLD_KM;
+        // This value is saved in @GoodsPickupMapLocationActivity.java
+        float outstationThreshold = preferenceManager.getFloatValue("outstation_distance", 30.0f);
+
+        //To determine whether local or outstation booking
+        isOutstation = kilometers > outstationThreshold;
 
         runOnUiThread(() -> {
             // Update distance and time
@@ -370,6 +385,7 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
             binding.txtEstimatedTime.setText(durationText);
 
             // Update booking type with icon
+
             if (isOutstation) {
                 binding.txtBookingType.setText("Outstation");
                 binding.txtBookingType.setCompoundDrawablesWithIntrinsicBounds(
@@ -381,7 +397,7 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
                         R.drawable.ic_local, 0, 0, 0);
                 binding.txtBookingType.setTextColor(getResources().getColor(R.color.local_color));
             }
-
+            preferenceManager.saveBooleanValue("isOutstation",isOutstation);
             // Optionally update proceed button text/style based on booking type
             updateProceedButton();
         });
@@ -424,6 +440,9 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
                     notifyDataSetChanged();
                     updateMap(gMap);
                     binding.txtAddnewstop.setVisibility(dropList.size() <= 2 ? View.VISIBLE : View.GONE);
+                }
+                if(dropList.size() <=1){
+                    Glb.addStopClicked = false;
                 }
             });
         }
@@ -530,5 +549,9 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
 
         // Clear binding
         binding = null;
+
+        if(!Glb.addStopClicked){
+            dropList.clear();
+        }
     }
 }

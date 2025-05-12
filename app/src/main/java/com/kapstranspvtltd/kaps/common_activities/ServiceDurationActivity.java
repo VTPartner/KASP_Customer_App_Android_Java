@@ -35,7 +35,7 @@ public class ServiceDurationActivity extends AppCompatActivity {
         subCatID = Integer.parseInt(Glb.sub_cat_id);
         serviceName = Glb.serviceName;
         serviceID = Glb.serviceID;
-        serviceBasePrice = Double.parseDouble(Glb.sub_cat_base_price);
+        serviceBasePrice = Double.parseDouble(Glb.service_base_price);
 
 //        categoryName = getIntent().getStringExtra("category_name");
 //        categoryId = getIntent().getIntExtra("category_id", -1);
