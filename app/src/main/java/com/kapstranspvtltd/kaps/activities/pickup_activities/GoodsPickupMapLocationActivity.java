@@ -106,7 +106,7 @@ public class GoodsPickupMapLocationActivity extends BaseActivity implements OnMa
 
     ProgressDialog progressDialog;
 
-
+    private String senderName = "", senderNumber = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,6 +124,24 @@ public class GoodsPickupMapLocationActivity extends BaseActivity implements OnMa
 
         initializeViews(savedInstanceState);
         setupClickListeners();
+        getSenderDetails();
+    }
+
+    private void getSenderDetails() {
+        String customerName = preferenceManager.getStringValue("customer_name");
+        String customerMobile = preferenceManager.getStringValue("customer_mobile_no");
+        String senderName = preferenceManager.getStringValue("sender_name");
+        String senderNumber = preferenceManager.getStringValue("sender_number");
+
+        if (senderName == null || senderName.isEmpty() || senderNumber == null || senderNumber.isEmpty()) {
+            this.senderName = customerName.split(" ")[0];
+            this.senderNumber = customerMobile;
+            preferenceManager.saveStringValue("sender_name", customerName);
+            preferenceManager.saveStringValue("sender_number", customerMobile);
+        } else {
+            this.senderName = senderName;
+            this.senderNumber = senderNumber;
+        }
     }
 
     private void initializeViews(Bundle savedInstanceState) {
@@ -268,11 +286,17 @@ public class GoodsPickupMapLocationActivity extends BaseActivity implements OnMa
 
         if (location != null && location.getLatitude() != 0.0 && location.getLongitude() != 0.0) {
             moveCamera(location.getLatitude(), location.getLongitude());
+            if (Glb.showPickup == false) {
+                handleAutoProceed(location.getLatitude(), location.getLongitude());
+            }
         } else {
             Task<Location> lastLocation = fusedLocationProviderClient.getLastLocation();
             lastLocation.addOnSuccessListener(this, location1 -> {
                 if (location1 != null) {
                     moveCamera(location1.getLatitude(), location1.getLongitude());
+                    if (Glb.showPickup == false) {
+                        handleAutoProceed(location1.getLatitude(), location1.getLongitude());
+                    }
                 } else {
                     Utility.enableLoc(this);
                     Toast.makeText(this, getString(R.string.location_not_avalible), Toast.LENGTH_SHORT).show();
@@ -280,6 +304,64 @@ public class GoodsPickupMapLocationActivity extends BaseActivity implements OnMa
             });
         }
     }
+
+    private void handleAutoProceed(double lat, double lng) {
+        // Get address from coordinates
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        try {
+            List<Address> addresses = geocoder.getFromLocation(lat, lng, 1);
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i <= address.getMaxAddressLineIndex(); i++) {
+                    sb.append(address.getAddressLine(i)).append(" ");
+                }
+                String fullAddress = sb.toString().trim();
+
+                // Create pickup object
+                Pickup pickup = new Pickup();
+                pickup.setLat(lat);
+                pickup.setLog(lng);
+                pickup.setAddress(fullAddress);
+                pickup.setRname(senderName);
+                pickup.setRmobile(senderNumber);
+
+                // Proceed to next screen
+                Intent intent = new Intent(this, GoodsDriverMapDropLocationActivity.class);
+                intent.putExtra("pickup", pickup);
+                intent.putExtra("category_id", categoryId);
+                intent.putExtra("category_name", categoryName);
+                intent.putExtra("cab", cabService);
+                startActivity(intent);
+                finish();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            showError("Error getting address from location");
+        }
+    }
+
+//    @SuppressLint("MissingPermission")
+//    private void getCurrentLocation() {
+//        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+//        Criteria criteria = new Criteria();
+//        String provider = locationManager.getBestProvider(criteria, true);
+//        Location location = locationManager.getLastKnownLocation(provider);
+//
+//        if (location != null && location.getLatitude() != 0.0 && location.getLongitude() != 0.0) {
+//            moveCamera(location.getLatitude(), location.getLongitude());
+//        } else {
+//            Task<Location> lastLocation = fusedLocationProviderClient.getLastLocation();
+//            lastLocation.addOnSuccessListener(this, location1 -> {
+//                if (location1 != null) {
+//                    moveCamera(location1.getLatitude(), location1.getLongitude());
+//                } else {
+//                    Utility.enableLoc(this);
+//                    Toast.makeText(this, getString(R.string.location_not_avalible), Toast.LENGTH_SHORT).show();
+//                }
+//            });
+//        }
+//    }
 
     private void moveCamera(double lat, double lng) {
         LatLng coordinate = new LatLng(lat, lng);
@@ -725,6 +807,7 @@ if(cabService){
             dropList.clear();
         }
         Glb.addStopClicked = false;
+        Glb.showPickup = false;
     }
 
     @Override

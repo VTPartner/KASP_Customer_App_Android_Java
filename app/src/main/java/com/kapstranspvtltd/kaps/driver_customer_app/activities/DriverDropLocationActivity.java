@@ -58,6 +58,9 @@ import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.activities.BaseActivity;
 import com.kapstranspvtltd.kaps.activities.pickup_activities.GoodsDriverMapDropLocationActivity;
 import com.kapstranspvtltd.kaps.activities.pickup_activities.ReviewMapActivity;
+import com.kapstranspvtltd.kaps.cab_customer_app.activities.CabBookingDropLocationActivity;
+import com.kapstranspvtltd.kaps.cab_customer_app.activities.CabBookingPickupLocationActivity;
+import com.kapstranspvtltd.kaps.common_activities.Glb;
 import com.kapstranspvtltd.kaps.databinding.ActivityDriverDropLocationBinding;
 import com.kapstranspvtltd.kaps.databinding.ActivityGoodsDriverMapDropLocationBinding;
 import com.kapstranspvtltd.kaps.model.User;
@@ -104,7 +107,7 @@ public class DriverDropLocationActivity extends BaseActivity implements OnMapRea
                     try {
                         Place place = Autocomplete.getPlaceFromIntent(data);
                         Log.e("TAG", "Place: " + place.getName() + ", " + place.getId());
-//                        binding.edSearch.setText(place.getName());
+                        binding.edSearch.setText(place.getName());
 //                        showExactLocation = true;
                         mMap.clear();
                         CameraUpdate yourLocation = CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 100);
@@ -136,13 +139,16 @@ public class DriverDropLocationActivity extends BaseActivity implements OnMapRea
                 }
             });
 
-
+    int categoryId;
+    String categoryName;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityDriverDropLocationBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         preferenceManager = new PreferenceManager(this);
+        categoryId = getIntent().getIntExtra("category_id", 1);
+        categoryName = getIntent().getStringExtra("category_name");
         initializeViews();
         setupClickListeners();
 
@@ -158,6 +164,9 @@ public class DriverDropLocationActivity extends BaseActivity implements OnMapRea
         if(address == null || address.isEmpty()){
             Toast.makeText(this,"Please re-confirm your pickup location",Toast.LENGTH_LONG).show();
             return;
+        }else{
+
+            binding.pickupLocation.setText(address);
         }
 //        user = sessionManager.getUserDetails();
         fusedLocationProviderClient = getFusedLocationProviderClient(this);
@@ -187,6 +196,8 @@ public class DriverDropLocationActivity extends BaseActivity implements OnMapRea
         binding.edSearch.setOnClickListener(singleClickListener);
         binding.btnSend.setOnClickListener(singleClickListener);
         binding.imgCurrunt.setOnClickListener(singleClickListener);
+        binding.editPickupLocation.setOnClickListener(singleClickListener);
+        binding.editDropLocation.setOnClickListener(singleClickListener);
 
         // Make search EditText more responsive
         binding.edSearch.setFocusable(false);
@@ -199,11 +210,25 @@ public class DriverDropLocationActivity extends BaseActivity implements OnMapRea
             overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
         } else if (v.getId() == R.id.ed_search) {
             launchPlacesAutocomplete();
-        } else if (v.getId() == R.id.btn_send) {
+        }
+        else if (v.getId() == R.id.editDropLocation) {
+            launchPlacesAutocomplete();
+        }
+        else if (v.getId() == R.id.btn_send) {
             showBottomConfirmDialog();
         } else if (v.getId() == R.id.img_currunt) {
             animateCurrentLocationButton();
             getCurrentLocation();
+        }else if (v.getId() == R.id.editPickupLocation) {
+
+            Glb.showPickup = true;
+            Intent intent = new Intent(DriverDropLocationActivity.this, DriverPickupLocationActivity.class);
+            intent.putExtra("category_id", categoryId);
+            intent.putExtra("category_name", categoryName);
+
+            startActivity(intent);
+            finish();
+
         }
     }
 
@@ -622,7 +647,7 @@ public class DriverDropLocationActivity extends BaseActivity implements OnMapRea
                     if (address != null) {
                         binding.txtAddress.setText(address);
 //                        if(showExactLocation == false)
-//                            binding.edSearch.setText(address);
+                            binding.edSearch.setText(address);
                         binding.locationMarkertext.setVisibility(View.VISIBLE);
                     }
                 }

@@ -38,6 +38,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.kapstranspvtltd.kaps.activities.OngoingGoodsDetailActivity;
 import com.kapstranspvtltd.kaps.activities.models.AllServicesHome;
 import com.kapstranspvtltd.kaps.activities.models.SliderModel;
+import com.kapstranspvtltd.kaps.activities.pickup_activities.GoodsBookingNewActivity;
 import com.kapstranspvtltd.kaps.activities.pickup_activities.GoodsPickupMapLocationActivity;
 import com.kapstranspvtltd.kaps.adapters.OfferSliderAdapter;
 import com.kapstranspvtltd.kaps.adapters.ServiceAdapter;
@@ -395,6 +396,7 @@ public class HomeSelectFragment extends Fragment {
 
         Intent intent;
         if (categoryId == 1) {
+//            intent = new Intent(getActivity(), GoodsBookingNewActivity.class);
             intent = new Intent(getActivity(), GoodsPickupMapLocationActivity.class);
         } else {
             intent = new Intent(getActivity(), CabBookingPickupLocationActivity.class);

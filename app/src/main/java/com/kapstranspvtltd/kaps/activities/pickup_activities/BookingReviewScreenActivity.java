@@ -965,7 +965,7 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
 
             // Validate distance
             if (totalDistance <= 0) {
-                showError("Invalid distance calculated");
+                showError("You will be charged the base fare because the distance is less then 1 km");
                 finish();
                 return;
             }

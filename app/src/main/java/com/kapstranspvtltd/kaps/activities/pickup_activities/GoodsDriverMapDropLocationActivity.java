@@ -54,6 +54,7 @@ import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 import com.kapstranspvtltd.kaps.activities.BaseActivity;
+import com.kapstranspvtltd.kaps.common_activities.Glb;
 import com.kapstranspvtltd.kaps.model.User;
 import com.kapstranspvtltd.kaps.polygon.Point;
 import com.kapstranspvtltd.kaps.polygon.Polygon;
@@ -101,7 +102,7 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
                     try {
                         Place place = Autocomplete.getPlaceFromIntent(data);
                         Log.e("TAG", "Place: " + place.getName() + ", " + place.getId());
-//                        binding.edSearch.setText(place.getName());
+                        binding.edSearch.setText(place.getName());
 //                        showExactLocation = true;
                         mMap.clear();
                         CameraUpdate yourLocation = CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 100);
@@ -134,16 +135,44 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
             });
 
 
+    int categoryId;
+
+    String categoryName;
+
+    private String senderName = "", senderNumber = "";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityGoodsDriverMapDropLocationBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         preferenceManager = new PreferenceManager(this);
+
+        categoryId = getIntent().getIntExtra("category_id", 1);
+        categoryName = getIntent().getStringExtra("category_name");
+        cabService = getIntent().getBooleanExtra("cab",false);
+        getSenderDetails();
         initializeViews();
         setupClickListeners();
 
         setupMap();
+
+    }
+
+    private void getSenderDetails() {
+        String customerName = preferenceManager.getStringValue("customer_name");
+        String customerMobile = preferenceManager.getStringValue("customer_mobile_no");
+        String senderName = preferenceManager.getStringValue("sender_name");
+        String senderNumber = preferenceManager.getStringValue("sender_number");
+
+        if (senderName == null || senderName.isEmpty() || senderNumber == null || senderNumber.isEmpty()) {
+            this.senderName = customerName.split(" ")[0];
+            this.senderNumber = customerMobile;
+            preferenceManager.saveStringValue("sender_name", customerName);
+            preferenceManager.saveStringValue("sender_number", customerMobile);
+        } else {
+            this.senderName = senderName;
+            this.senderNumber = senderNumber;
+        }
     }
 
     private void initializeViews() {
@@ -155,6 +184,9 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
         if(address == null || address.isEmpty()){
             Toast.makeText(this,"Please re-confirm your pickup location",Toast.LENGTH_LONG).show();
             return;
+        }else{
+            String senderDetails = senderName+"-"+senderNumber+"\n"+address;
+            binding.pickupLocation.setText(senderDetails);
         }
 //        user = sessionManager.getUserDetails();
         fusedLocationProviderClient = getFusedLocationProviderClient(this);
@@ -184,6 +216,8 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
         binding.edSearch.setOnClickListener(singleClickListener);
         binding.btnSend.setOnClickListener(singleClickListener);
         binding.imgCurrunt.setOnClickListener(singleClickListener);
+        binding.editPickupLocation.setOnClickListener(singleClickListener);
+        binding.editDropLocation.setOnClickListener(singleClickListener);
 
         // Make search EditText more responsive
         binding.edSearch.setFocusable(false);
@@ -194,14 +228,30 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
         if (v.getId() == R.id.img_back) {
             finish();
             overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
-        } else if (v.getId() == R.id.ed_search) {
+        }
+        else if (v.getId() == R.id.ed_search) {
             launchPlacesAutocomplete();
-        } else if (v.getId() == R.id.btn_send) {
+        }else if (v.getId() == R.id.editDropLocation) {
+            launchPlacesAutocomplete();
+        }
+
+        else if (v.getId() == R.id.btn_send) {
             showBottomConfirmDialog();
         } else if (v.getId() == R.id.img_currunt) {
             animateCurrentLocationButton();
             getCurrentLocation();
+        } else if (v.getId() == R.id.editPickupLocation) {
+
+            Glb.showPickup = true;
+            Intent intent = new Intent(GoodsDriverMapDropLocationActivity.this, GoodsPickupMapLocationActivity.class);
+            intent.putExtra("category_id", categoryId);
+            intent.putExtra("category_name", categoryName);
+            intent.putExtra("cab", categoryId == 2);
+            startActivity(intent);
+            finish();
+
         }
+
     }
 
     private void animateCurrentLocationButton() {
@@ -705,7 +755,7 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
                     if (address != null) {
                         binding.txtAddress.setText(address);
 //                        if(showExactLocation == false)
-//                            binding.edSearch.setText(address);
+                            binding.edSearch.setText(address);
                         binding.locationMarkertext.setVisibility(View.VISIBLE);
                     }
                 }

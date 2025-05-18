@@ -18,7 +18,7 @@ public class APIClient {
 
     public static final String baseUrl = DEV_MODE == 1
             ? "http://100.24.44.74:8000/api/vt_partner/"
-            : "http://100.24.44.74/api/vt_partner/";
+            : "https://www.kaps9.in/api/vt_partner/";
     //        public static String baseUrl = "http://100.24.44.74:8000/api/vt_partner/";
 //        public static String baseUrl = "http://100.24.44.74/api/vt_partner/";
     public static String MAP_KEY = "AIzaSyAAlmEtjJOpSaJ7YVkMKwdSuMTbTx39l_o";

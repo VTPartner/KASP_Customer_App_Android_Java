@@ -13,12 +13,7 @@
         android:orientation="horizontal"
         android:padding="12dp">
 
-        <ImageView
-            android:id="@+id/ivVehicle"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
 
-            android:scaleType="fitCenter" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -50,6 +45,13 @@
                 android:textSize="14sp" />
 
         </LinearLayout>
+
+        <ImageView
+            android:id="@+id/ivVehicle"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+
+            android:scaleType="fitCenter" />
 
         <TextView
             android:id="@+id/tvTotalPrice"

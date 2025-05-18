@@ -5,6 +5,9 @@ import android.content.SharedPreferences;
 
 import org.json.JSONObject;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class PreferenceManager {
     private static final String PREF_NAME = "KAPSCustomerPrefs";
     private final SharedPreferences sharedPreferences;
@@ -83,6 +86,45 @@ public class PreferenceManager {
 
     public float getFloatValue(String key, float defaultValue) {
         return sharedPreferences.getFloat(key, defaultValue);
+    }
+
+    // StringSet preferences
+    public void saveStringSet(String key, Set<String> value) {
+        editor.putStringSet(key, value);
+        editor.apply();
+    }
+
+    public Set<String> getStringSet(String key) {
+        return sharedPreferences.getStringSet(key, new HashSet<>());
+    }
+
+    public Set<String> getStringSet(String key, Set<String> defaultValue) {
+        return sharedPreferences.getStringSet(key, defaultValue);
+    }
+
+    // Helper method to add a single value to a StringSet
+    public void addToStringSet(String key, String value) {
+        Set<String> currentSet = getStringSet(key);
+        currentSet.add(value);
+        saveStringSet(key, currentSet);
+    }
+
+    // Helper method to remove a single value from a StringSet
+    public void removeFromStringSet(String key, String value) {
+        Set<String> currentSet = getStringSet(key);
+        currentSet.remove(value);
+        saveStringSet(key, currentSet);
+    }
+
+    // Helper method to check if a value exists in a StringSet
+    public boolean containsInStringSet(String key, String value) {
+        Set<String> currentSet = getStringSet(key);
+        return currentSet.contains(value);
+    }
+
+    // Helper method to clear a StringSet
+    public void clearStringSet(String key) {
+        saveStringSet(key, new HashSet<>());
     }
 
     // Remove specific preference

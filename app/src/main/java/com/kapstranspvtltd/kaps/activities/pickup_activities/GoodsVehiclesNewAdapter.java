@@ -24,9 +24,14 @@ public class GoodsVehiclesNewAdapter extends RecyclerView.Adapter<GoodsVehiclesN
     private OnVehicleSelectedListener listener;
     private double totalDistance;
 
+    private static final long CLICK_DELAY = 300; // 300ms delay for double click
+    private long lastClickTime = 0;
+    private int lastClickPosition = -1;
+
 
     public interface OnVehicleSelectedListener {
         void onVehicleSelected(VehicleModel vehicle, int position);
+
     }
 
     public GoodsVehiclesNewAdapter(Context context, List<VehicleModel> vehicles, OnVehicleSelectedListener listener,double totalDistance) {
@@ -72,11 +77,22 @@ public class GoodsVehiclesNewAdapter extends RecyclerView.Adapter<GoodsVehiclesN
         );
 
         holder.itemView.setOnClickListener(v -> {
-            int previousSelected = selectedPosition;
-            selectedPosition = position;
-            notifyItemChanged(previousSelected);
-            notifyItemChanged(selectedPosition);
-            listener.onVehicleSelected(vehicle, position);
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastClickTime < CLICK_DELAY && lastClickPosition == position) {
+                // Double click detected
+                if (listener instanceof AllGoodsVehiclesActivity) {
+                    ((AllGoodsVehiclesActivity) listener).showVehicleDetailsBottomSheet(vehicle);
+                }
+            } else {
+                // Single click - handle selection
+                int previousSelected = selectedPosition;
+                selectedPosition = position;
+                notifyItemChanged(previousSelected);
+                notifyItemChanged(selectedPosition);
+                listener.onVehicleSelected(vehicle, position);
+            }
+            lastClickTime = currentTime;
+            lastClickPosition = position;
         });
     }
 

@@ -64,6 +64,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.activities.BaseActivity;
+import com.kapstranspvtltd.kaps.activities.pickup_activities.GoodsDriverMapDropLocationActivity;
+import com.kapstranspvtltd.kaps.common_activities.Glb;
 import com.kapstranspvtltd.kaps.databinding.ActivityCabBookingPickupLocationBinding;
 import com.kapstranspvtltd.kaps.databinding.ActivityDriverPickupLocationBinding;
 import com.kapstranspvtltd.kaps.driver_customer_app.activities.DriverDropLocationActivity;
@@ -262,6 +264,28 @@ public class CabBookingPickupLocationActivity extends BaseActivity implements On
         });
     }
 
+//    @SuppressLint("MissingPermission")
+//    private void getCurrentLocation() {
+//        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+//        Criteria criteria = new Criteria();
+//        String provider = locationManager.getBestProvider(criteria, true);
+//        Location location = locationManager.getLastKnownLocation(provider);
+//
+//        if (location != null && location.getLatitude() != 0.0 && location.getLongitude() != 0.0) {
+//            moveCamera(location.getLatitude(), location.getLongitude());
+//        } else {
+//            Task<Location> lastLocation = fusedLocationProviderClient.getLastLocation();
+//            lastLocation.addOnSuccessListener(this, location1 -> {
+//                if (location1 != null) {
+//                    moveCamera(location1.getLatitude(), location1.getLongitude());
+//                } else {
+//                    Utility.enableLoc(this);
+//                    Toast.makeText(this, getString(R.string.location_not_avalible), Toast.LENGTH_SHORT).show();
+//                }
+//            });
+//        }
+//    }
+
     @SuppressLint("MissingPermission")
     private void getCurrentLocation() {
         LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
@@ -271,11 +295,17 @@ public class CabBookingPickupLocationActivity extends BaseActivity implements On
 
         if (location != null && location.getLatitude() != 0.0 && location.getLongitude() != 0.0) {
             moveCamera(location.getLatitude(), location.getLongitude());
+            if (Glb.showPickup == false) {
+                handleAutoProceed(location.getLatitude(), location.getLongitude());
+            }
         } else {
             Task<Location> lastLocation = fusedLocationProviderClient.getLastLocation();
             lastLocation.addOnSuccessListener(this, location1 -> {
                 if (location1 != null) {
                     moveCamera(location1.getLatitude(), location1.getLongitude());
+                    if (Glb.showPickup == false) {
+                        handleAutoProceed(location1.getLatitude(), location1.getLongitude());
+                    }
                 } else {
                     Utility.enableLoc(this);
                     Toast.makeText(this, getString(R.string.location_not_avalible), Toast.LENGTH_SHORT).show();
@@ -284,6 +314,40 @@ public class CabBookingPickupLocationActivity extends BaseActivity implements On
         }
     }
 
+    private void handleAutoProceed(double lat, double lng) {
+        // Get address from coordinates
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        try {
+            List<Address> addresses = geocoder.getFromLocation(lat, lng, 1);
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i <= address.getMaxAddressLineIndex(); i++) {
+                    sb.append(address.getAddressLine(i)).append(" ");
+                }
+                String fullAddress = sb.toString().trim();
+
+                // Create pickup object
+                Pickup pickup = new Pickup();
+                pickup.setLat(lat);
+                pickup.setLog(lng);
+                pickup.setAddress(fullAddress);
+
+
+                // Proceed to next screen
+                Intent intent = new Intent(this, CabBookingDropLocationActivity.class);
+                intent.putExtra("pickup", pickup);
+                intent.putExtra("category_id", categoryId);
+                intent.putExtra("category_name", categoryName);
+                intent.putExtra("cab", cabService);
+                startActivity(intent);
+                finish();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            showError("Error getting address from location");
+        }
+    }
     private void moveCamera(double lat, double lng) {
         LatLng coordinate = new LatLng(lat, lng);
         showExactLocation = false;
@@ -650,6 +714,7 @@ public class CabBookingPickupLocationActivity extends BaseActivity implements On
         if(dropList != null){
             dropList.clear();
         }
+        Glb.showPickup = false;
     }
 
     @Override

@@ -6,6 +6,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.DefaultRetryPolicy;
@@ -15,6 +18,8 @@ import com.android.volley.ServerError;
 import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.bumptech.glide.Glide;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.activities.models.VehicleModel;
 import com.kapstranspvtltd.kaps.common_activities.Glb;
@@ -352,6 +357,47 @@ public class AllGoodsVehiclesActivity extends AppCompatActivity implements Goods
     public void onVehicleSelected(VehicleModel vehicle, int position) {
         Glb.selectedVehicle = vehicle;
         binding.btnProceed.setText("Proceed with " + vehicle.getVehicleName());
+    }
+
+    public void showVehicleDetailsBottomSheet(VehicleModel vehicle) {
+        BottomSheetDialog mBottomSheetDialog = new BottomSheetDialog(this);
+        View sheetView = getLayoutInflater().inflate(R.layout.custome_info, null);
+
+        ImageView imgIcon = sheetView.findViewById(R.id.img_icon);
+        TextView txtTitle = sheetView.findViewById(R.id.txt_title);
+        TextView txtCapcity = sheetView.findViewById(R.id.txt_capcity);
+        ImageView sizeImage = sheetView.findViewById(R.id.sizeImage);
+//        RecyclerView guidelinesRcy = sheetView.findViewById(R.id.guidelinesRecyclerView);
+//        ProgressBar progressBar = sheetView.findViewById(R.id.progressBar);
+
+        // Setup RecyclerView
+//        GuidelinesAdapter guidelinesAdapter = new GuidelinesAdapter();
+//        guidelinesRcy.setAdapter(guidelinesAdapter);
+//        guidelinesRcy.setLayoutManager(new LinearLayoutManager(this));
+
+        // Load vehicle image
+        Glide.with(this)
+                .load(vehicle.getVehicleImage())
+                .placeholder(R.drawable.placeholder)
+                .error(R.drawable.ic_image_placeholder)
+                .into(imgIcon);
+
+        Glide.with(this)
+                .load(vehicle.getSizeImage())
+                .placeholder(R.drawable.placeholder)
+                .error(R.drawable.ic_image_placeholder)
+                .into(sizeImage);
+
+        // Set vehicle details
+        txtTitle.setText(vehicle.getVehicleName());
+        txtCapcity.setText("Capacity: " + vehicle.getWeight() + "Kgs");
+
+        // Fetch and show guidelines
+//        fetchGuidelines(guidelinesAdapter, progressBar);
+
+
+        mBottomSheetDialog.setContentView(sheetView);
+        mBottomSheetDialog.show();
     }
 
     private void proceedWithBooking(VehicleModel vehicle) {

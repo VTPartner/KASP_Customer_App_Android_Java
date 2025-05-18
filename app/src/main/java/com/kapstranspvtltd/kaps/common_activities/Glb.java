@@ -27,4 +27,5 @@ public class Glb {
     public static boolean addStopClicked = false;
 
     public static VehicleModel selectedVehicle = null;
+    public static boolean showPickup = false;
 }
