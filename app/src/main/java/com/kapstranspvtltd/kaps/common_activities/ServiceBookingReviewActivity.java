@@ -9,9 +9,16 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.DefaultRetryPolicy;
@@ -20,9 +27,12 @@ import com.android.volley.Request;
 import com.android.volley.ServerError;
 import com.android.volley.TimeoutError;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.slider.Slider;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.activities.HomeActivity;
 import com.kapstranspvtltd.kaps.activities.models.GuidelineModel;
+import com.kapstranspvtltd.kaps.activities.models.UpgradePrice;
 import com.kapstranspvtltd.kaps.activities.pickup_activities.CouponCodeActivity;
 import com.kapstranspvtltd.kaps.activities.pickup_activities.SearchingGoodsDriverActivity;
 import com.kapstranspvtltd.kaps.adapters.GuidelinesAdapter;
@@ -51,6 +61,8 @@ import java.util.Random;
 public class ServiceBookingReviewActivity extends AppCompatActivity {
     private static final int COUPON_REQUEST_CODE = 100;
     private ActivityServiceBookingReviewBinding binding;
+
+    private double finalAmount = 0.0;
     private double totalPrice = 0.0;
     private double discountAmount = 0.0;
     private String appliedCouponCode = "";
@@ -191,7 +203,8 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
 
         binding.removeCoupon.setOnClickListener(v -> removeCoupon());
 
-        binding.proceedButton.setOnClickListener(v -> proceedWithBooking());
+//        binding.proceedButton.setOnClickListener(v -> proceedWithBooking());
+        binding.proceedButton.setOnClickListener(v -> showPriceAdjustmentSheet());
     }
 
     private void loadData() {
@@ -205,7 +218,7 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
         double basePrice = getIntent().getDoubleExtra("service_base_price", 0);
 
 //        totalPrice = Math.max(basePrice * serviceHours, basePrice);
-        totalPrice = basePrice * serviceHours;
+        finalAmount = totalPrice = basePrice * serviceHours;
         updatePriceDetails();
     }
 
@@ -216,6 +229,9 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
         binding.serviceHoursText.setText(String.format("%d Hrs",
                 getIntent().getIntExtra("service_hours", 0)));
 
+
+
+
         if (discountAmount > 0) {
             binding.discountLayout.setVisibility(View.VISIBLE);
             binding.discountText.setText(String.format("-₹%.2f", discountAmount));
@@ -223,8 +239,11 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
             binding.discountLayout.setVisibility(View.GONE);
         }
 
-        binding.finalAmountText.setText(String.format("₹%.2f", finalPrice));
-        binding.bottomSheetAmount.setText(String.format("₹%.2f", finalPrice));
+        finalAmount = adjustedPrice > 0 ? adjustedPrice : Math.round(totalPrice);
+
+
+        binding.finalAmountText.setText(String.format("₹%.2f", finalAmount));
+        binding.bottomSheetAmount.setText(String.format("₹%.2f", finalAmount));
     }
 
     private void fetchGuidelines() {
@@ -240,10 +259,15 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
         editor.putInt("reward_goods_points", randomNumber);
         editor.apply();
 
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
         // Create request body
         JSONObject requestBody = new JSONObject();
         try {
             requestBody.put("category_id", Glb.categoryId); // Replace with your category ID
+            requestBody.put("customer_id", customerId);
+            requestBody.put("auth", fcmToken);
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
@@ -321,6 +345,8 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
         try {
             String cityId = preferenceManager.getStringValue("city_id");
             String customerId = preferenceManager.getStringValue("customer_id");
+            String fcmToken = preferenceManager.getStringValue("fcm_token");
+
             String url = "";
 
             if (Glb.categoryId == 3) { // Jcb Crane Booking
@@ -340,6 +366,13 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
             double serviceFare = totalPrice - discountAmount;
 
             int serviceHours = getIntent().getIntExtra("service_hours", 0);
+
+            System.out.println("service totalPrice before hike price::"+serviceFare);
+            if(adjustedPrice>0){
+                adjustedPrice-=serviceFare;
+            }
+            serviceFare+=adjustedPrice;
+            System.out.println("cab adjustedPrice::"+adjustedPrice);
 
             // Create JSON body
             JSONObject jsonBody = new JSONObject();
@@ -374,6 +407,10 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
                 jsonBody.put("coupon_id", couponId);
                 jsonBody.put("coupon_amount", discountAmount);
                 jsonBody.put("before_coupon_amount", beforeCouponAmount);
+
+                jsonBody.put("hike_price", adjustedPrice);
+                jsonBody.put("auth", fcmToken);
+
                 jsonBody.put("is_scheduled", isScheduledBooking);
                 if (isScheduledBooking) {
                     if (scheduledTime.isEmpty()) {
@@ -406,6 +443,13 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
                                 String bookingId = "";
 
                                 bookingId = results.getJSONObject(0).getString("booking_id");
+
+                                if(adjustedPrice>0){
+                                    finalAmount-=adjustedPrice;
+                                    binding.finalAmountText.setText(String.format("₹%d", (int)finalAmount));
+                                    binding.bottomSheetAmount.setText(String.format("₹%d", (int)finalAmount));
+                                    adjustedPrice=0;
+                                }
 
                                 if (isScheduledBooking) {
                                     Toast.makeText(this, "Your booking has been scheduled. A agent will be assigned at the scheduled time.", Toast.LENGTH_LONG).show();
@@ -537,4 +581,222 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
         binding.appliedCouponLayout.setVisibility(View.GONE);
         updatePriceDetails();
     }
+
+    private double originalPrice = 0.0;
+    private double adjustedPrice = 0.0;
+    private BottomSheetDialog priceAdjustmentDialog;
+
+    private List<UpgradePrice> upgradePrices = new ArrayList<>();
+
+    private void showPriceAdjustmentSheet() {
+        priceAdjustmentDialog = new BottomSheetDialog(this);
+        View sheetView = getLayoutInflater().inflate(R.layout.price_adjustment_bottom_sheet, null);
+        priceAdjustmentDialog.setContentView(sheetView);
+
+        // Initialize views
+        ImageView ivClose = sheetView.findViewById(R.id.ivClose);
+        TextView tvAdjustedPrice = sheetView.findViewById(R.id.tvAdjustedPrice);
+        TextView titleText = sheetView.findViewById(R.id.ptitleTxt);
+        TextView priceText = sheetView.findViewById(R.id.ppriceText);
+        Slider priceSlider = sheetView.findViewById(R.id.priceSlider);
+        Button btnConfirmPrice = sheetView.findViewById(R.id.btnConfirmPrice);
+        LinearLayout priceRangeContainer = sheetView.findViewById(R.id.priceRangeContainer);
+
+        titleText.setText("Set Your Price\nfor Quick Service at Your Doorstep");
+        priceText.setText("Offering a fair price helps you get\nmatched with a service provider faster");
+
+
+        // Set initial values
+        originalPrice = finalAmount;
+        adjustedPrice = originalPrice;
+        tvAdjustedPrice.setText("₹" + (int)adjustedPrice);
+        btnConfirmPrice.setText("Book " + (!Glb.serviceName.isEmpty() ? Glb.sub_cat_name + " / " + Glb.serviceName : Glb.sub_cat_name) + " for ₹" + (int) adjustedPrice);
+
+
+        // Fetch upgrade prices
+        fetchUpgradePrices(serviceID, priceRangeContainer, priceSlider,tvAdjustedPrice,btnConfirmPrice);
+
+        // Handle close
+        ivClose.setOnClickListener(v -> {
+            adjustedPrice = originalPrice;
+            updatePriceDetails();
+            priceAdjustmentDialog.dismiss();
+        });
+
+        // Handle confirm
+        btnConfirmPrice.setOnClickListener(v -> {
+            finalAmount = adjustedPrice;
+            updatePriceDetails();
+            priceAdjustmentDialog.dismiss();
+            saveBookingDetails();
+        });
+
+        priceAdjustmentDialog.show();
+    }
+
+    private void fetchUpgradePrices(int serviceID, LinearLayout container, Slider slider, TextView tvAdjustedPrice, Button btnConfirmPrice) {
+        try {
+
+            String customerId = preferenceManager.getStringValue("customer_id");
+            String fcmToken = preferenceManager.getStringValue("fcm_token");
+
+
+            JSONObject requestBody = new JSONObject();
+            requestBody.put("sub_cat_id", sub_cat_id);
+            requestBody.put("service_id", serviceID);
+            requestBody.put("customer_id", customerId);
+            requestBody.put("auth", fcmToken);
+
+            JsonObjectRequest request = new JsonObjectRequest(
+                    Request.Method.POST,
+                    APIClient.baseUrl + "get_service_upgrade_prices",
+                    requestBody,
+                    response -> {
+                        try {
+                            // Show only base price option
+                            container.removeAllViews();
+                            container.addView(createPriceRangeView("Base", 0));
+
+                            // Hide slider by default
+                            slider.setVisibility(View.GONE);
+
+                            // Check if upgrade prices exist
+                            if (response.has("upgrade_prices")) {
+                                JSONArray upgradeArray = response.getJSONArray("upgrade_prices");
+                                if (upgradeArray.length() > 0) {
+                                    // Show slider if we have upgrade prices
+                                    slider.setVisibility(View.VISIBLE);
+                                    setupUpgradePrices(upgradeArray, container, slider, tvAdjustedPrice, btnConfirmPrice);
+                                }
+                            }
+
+                            // Initial price display
+                            adjustedPrice = originalPrice;
+                            updatePriceDisplay(tvAdjustedPrice, btnConfirmPrice, 0);
+                            highlightSelectedPriceRange(container, 0);
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            handleUpgradePricesError(container, slider, tvAdjustedPrice, btnConfirmPrice);
+                        }
+                    },
+                    error -> {
+                        if (error.networkResponse != null && error.networkResponse.statusCode == 404) {
+                            // Handle 404 - show only base price
+                            handleUpgradePricesError(container, slider, tvAdjustedPrice, btnConfirmPrice);
+                        } else {
+                            showError("Error loading price ranges");
+                        }
+                    }
+            );
+
+            VolleySingleton.getInstance(this).addToRequestQueue(request);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            handleUpgradePricesError(container, slider, tvAdjustedPrice, btnConfirmPrice);
+        }
+    }
+
+    private void handleUpgradePricesError(LinearLayout container, Slider slider, TextView tvAdjustedPrice, Button btnConfirmPrice) {
+        // Clear container and show only base price
+        container.removeAllViews();
+        container.addView(createPriceRangeView("Base", 0));
+
+        // Hide slider
+        slider.setVisibility(View.GONE);
+
+        // Set initial price display
+        adjustedPrice = originalPrice;
+        updatePriceDisplay(tvAdjustedPrice, btnConfirmPrice, 0);
+        highlightSelectedPriceRange(container, 0);
+    }
+
+    private void setupUpgradePrices(JSONArray upgradeArray, LinearLayout container, Slider slider, TextView tvAdjustedPrice, Button btnConfirmPrice) throws JSONException {
+        upgradePrices.clear();
+        List<Float> validSteps = new ArrayList<>();
+        validSteps.add(0f);
+
+        for (int i = 0; i < upgradeArray.length(); i++) {
+            JSONObject upgrade = upgradeArray.getJSONObject(i);
+            float price = (float) upgrade.getDouble("price");
+            String name = upgrade.getString("upgrade_name");
+
+            upgradePrices.add(new UpgradePrice(price, name));
+            container.addView(createPriceRangeView(name, price));
+            validSteps.add(price);
+        }
+
+        // Configure slider
+        float maxUpgrade = validSteps.get(validSteps.size() - 1);
+        slider.setValueFrom(0);
+        slider.setValueTo(maxUpgrade);
+
+        // Calculate step size based on number of valid steps
+        float stepSize = maxUpgrade / (validSteps.size() - 1);
+        slider.setStepSize(stepSize);
+
+        // Update slider listener
+        slider.addOnChangeListener((s, value, fromUser) -> {
+            float closestStep = findClosestValidStep(value, validSteps);
+            adjustedPrice = originalPrice + closestStep;
+            updatePriceDisplay(tvAdjustedPrice, btnConfirmPrice, closestStep);
+            highlightSelectedPriceRange(container, closestStep);
+        });
+    }
+    private float findClosestValidStep(float value, List<Float> validSteps) {
+        float closest = validSteps.get(0);
+        float minDiff = Math.abs(value - closest);
+
+        for (float step : validSteps) {
+            float diff = Math.abs(value - step);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = step;
+            }
+        }
+        return closest;
+    }
+
+    private void updatePriceDisplay(TextView tvAdjustedPrice, Button btnConfirmPrice, float upgrade) {
+        tvAdjustedPrice.setText(String.format("₹%d", (int)adjustedPrice));
+        String buttonText = upgrade == 0 ?
+                String.format("Book %s for ₹%d", (!Glb.serviceName.isEmpty() ? Glb.sub_cat_name + " / " + Glb.serviceName : Glb.sub_cat_name), (int)adjustedPrice) :
+                String.format("Book %s for ₹%d (+₹%d)", (!Glb.serviceName.isEmpty() ? Glb.sub_cat_name + " / " + Glb.serviceName : Glb.sub_cat_name), (int)adjustedPrice, (int)upgrade);
+        btnConfirmPrice.setText(buttonText);
+    }
+
+    private void highlightSelectedPriceRange(LinearLayout container, float selectedUpgrade) {
+        for (int i = 0; i < container.getChildCount(); i++) {
+            View child = container.getChildAt(i);
+            if (child instanceof TextView) {
+                TextView tv = (TextView) child;
+                float upgradeValue = i == 0 ? 0 : upgradePrices.get(i-1).price;
+
+                if (Math.abs(upgradeValue - selectedUpgrade) < 0.01) { // Use small epsilon for float comparison
+                    tv.setTextColor(getResources().getColor(R.color.colorPrimary));
+                    tv.setTypeface(null, Typeface.BOLD);
+                } else {
+                    tv.setTextColor(getResources().getColor(R.color.grey));
+                    tv.setTypeface(null, Typeface.NORMAL);
+                }
+            }
+        }
+    }
+
+
+    private View createPriceRangeView(String label, float price) {
+        TextView tv = new TextView(this);
+        tv.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f
+        ));
+        tv.setText(price == 0 ? "Base" : "+" + (int)price);
+        tv.setTextColor(getResources().getColor(R.color.grey));
+        tv.setGravity(Gravity.CENTER);
+        tv.setPadding(16, 8, 16, 8);
+        return tv;
+    }
+
 }

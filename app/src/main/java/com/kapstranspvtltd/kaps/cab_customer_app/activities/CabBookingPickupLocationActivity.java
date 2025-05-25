@@ -10,14 +10,18 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.location.Address;
 import android.location.Criteria;
@@ -27,11 +31,16 @@ import android.location.LocationManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.ContactsContract;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.transition.Fade;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -47,6 +56,7 @@ import com.android.volley.ServerError;
 import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -57,15 +67,25 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.AutocompleteSessionToken;
 import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.api.net.FetchPlaceRequest;
+import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest;
+import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.libraries.places.widget.Autocomplete;
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.activities.BaseActivity;
 import com.kapstranspvtltd.kaps.activities.pickup_activities.GoodsDriverMapDropLocationActivity;
 import com.kapstranspvtltd.kaps.common_activities.Glb;
+import com.kapstranspvtltd.kaps.common_activities.adapters.PlaceSuggestionAdapter;
+import com.kapstranspvtltd.kaps.common_activities.adapters.RecentSearchAdapter;
+import com.kapstranspvtltd.kaps.common_activities.models.RecentSearch;
 import com.kapstranspvtltd.kaps.databinding.ActivityCabBookingPickupLocationBinding;
 import com.kapstranspvtltd.kaps.databinding.ActivityDriverPickupLocationBinding;
 import com.kapstranspvtltd.kaps.driver_customer_app.activities.DriverDropLocationActivity;
@@ -81,6 +101,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -112,7 +134,7 @@ public class CabBookingPickupLocationActivity extends BaseActivity implements On
     ProgressDialog progressDialog;
 
 
-
+    private PlacesClient placesClient;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -127,6 +149,10 @@ public class CabBookingPickupLocationActivity extends BaseActivity implements On
         categoryName = getIntent().getStringExtra("category_name");
         cabService = getIntent().getBooleanExtra("cab",true);
 
+        if (!Places.isInitialized()) {
+            Places.initialize(getApplicationContext(), getString(R.string.google_maps_key), Locale.US);
+        }
+        placesClient = Places.createClient(this);
         initializeViews(savedInstanceState);
         setupClickListeners();
     }
@@ -135,9 +161,9 @@ public class CabBookingPickupLocationActivity extends BaseActivity implements On
 //        custPrograssbar = new CustPrograssbar();
         fusedLocationProviderClient = getFusedLocationProviderClient(this);
 
-        if (!Places.isInitialized()) {
-            Places.initialize(getApplicationContext(), getString(R.string.google_maps_key), Locale.US);
-        }
+//        if (!Places.isInitialized()) {
+//            Places.initialize(getApplicationContext(), getString(R.string.google_maps_key), Locale.US);
+//        }
 
         // Add map settings
         mMapView = binding.map;
@@ -161,11 +187,16 @@ public class CabBookingPickupLocationActivity extends BaseActivity implements On
         binding.edSearch.setFocusable(false);
         binding.edSearch.setClickable(true);
         binding.edSearch.setOnClickListener(v -> {
-            v.setEnabled(false); // Prevent double clicks
-            launchPlacesAutocomplete();
-            // Re-enable after a delay
-            v.postDelayed(() -> v.setEnabled(true), 1000);
+            v.setEnabled(false);
+            showCustomPlacesSearch();
+            v.postDelayed(() -> v.setEnabled(true), 100);
         });
+//        binding.edSearch.setOnClickListener(v -> {
+//            v.setEnabled(false); // Prevent double clicks
+//            launchPlacesAutocomplete();
+//            // Re-enable after a delay
+//            v.postDelayed(() -> v.setEnabled(true), 1000);
+//        });
         binding.btnSend.setOnClickListener(v -> handleConfirmClick());
         binding.txtAddress.setOnClickListener(v -> {
             v.setEnabled(false);
@@ -460,8 +491,13 @@ public class CabBookingPickupLocationActivity extends BaseActivity implements On
         try {
             String url = APIClient.baseUrl + "allowed_pin_code";
 
+            String customerId = preferenceManager.getStringValue("customer_id");
+            String fcmToken = preferenceManager.getStringValue("fcm_token");
+
             JSONObject jsonBody = new JSONObject();
             jsonBody.put("pincode", pincode);
+            jsonBody.put("customer_id", customerId);
+            jsonBody.put("auth", fcmToken);
 
             JsonObjectRequest request = new JsonObjectRequest(
                     Request.Method.POST,
@@ -715,6 +751,9 @@ public class CabBookingPickupLocationActivity extends BaseActivity implements On
             dropList.clear();
         }
         Glb.showPickup = false;
+        if (placesClient != null) {
+            Places.deinitialize();
+        }
     }
 
     @Override
@@ -784,4 +823,195 @@ public class CabBookingPickupLocationActivity extends BaseActivity implements On
             }
         }
     }
+
+    private static final String PREF_RECENT_SEARCHES = "recent_cab_pickup_searches";
+    private static final int MAX_RECENT_SEARCHES = 10;
+
+
+
+    private void showCustomPlacesSearch() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.custom_places_search_dialog, null);
+        dialog.setContentView(view);
+
+        setupFullscreenDialog(dialog, view);
+
+        EditText searchEditText = view.findViewById(R.id.searchEditText);
+        RecyclerView recyclerView = view.findViewById(R.id.recentSearchesRecyclerView);
+        TextView recentSearchesTitle = view.findViewById(R.id.recentSearchesTitle);
+
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        // Create adapters
+        PlaceSuggestionAdapter suggestionsAdapter = new PlaceSuggestionAdapter(
+                prediction -> fetchPlaceDetails(prediction.getPlaceId(), dialog));
+
+        List<RecentSearch> recentSearches = getRecentSearches();
+        RecentSearchAdapter recentAdapter = new RecentSearchAdapter(recentSearches,
+                search -> {
+                    dialog.dismiss();
+                    moveCamera(search.getLatitude(), search.getLongitude());
+                    binding.edSearch.setText(search.getAddress());
+                });
+
+        // Show recent searches initially
+        if (!recentSearches.isEmpty()) {
+            recentSearchesTitle.setVisibility(View.VISIBLE);
+            recyclerView.setAdapter(recentAdapter);
+        } else {
+            recentSearchesTitle.setVisibility(View.GONE);
+        }
+
+        // Setup search functionality
+        searchEditText.addTextChangedListener(new TextWatcher() {
+            private Handler handler = new Handler();
+            private Runnable runnable;
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                handler.removeCallbacks(runnable);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (s.length() > 0) {
+                    recentSearchesTitle.setVisibility(View.GONE);
+                    recyclerView.setAdapter(suggestionsAdapter);
+                    runnable = () -> performPlacesSearch(s.toString(), suggestionsAdapter);
+                    handler.postDelayed(runnable, 600);
+                } else {
+                    // Show recent searches when search text is empty
+                    if (!recentSearches.isEmpty()) {
+                        recentSearchesTitle.setVisibility(View.VISIBLE);
+                        recyclerView.setAdapter(recentAdapter);
+                    } else {
+                        recentSearchesTitle.setVisibility(View.GONE);
+                    }
+                    suggestionsAdapter.setPredictions(new ArrayList<>());
+                }
+            }
+        });
+
+        // Auto focus and show keyboard
+        searchEditText.requestFocus();
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(searchEditText, InputMethodManager.SHOW_IMPLICIT);
+
+        dialog.show();
+    }
+
+
+
+    private void performPlacesSearch(String query, PlaceSuggestionAdapter adapter) {
+        try {
+            if (query.length() < 2) {
+                adapter.setPredictions(new ArrayList<>());
+                return;
+            }
+
+            if (!Places.isInitialized()) {
+                Places.initialize(getApplicationContext(), getString(R.string.google_maps_key));
+                placesClient = Places.createClient(this);
+            }
+
+            AutocompleteSessionToken token = AutocompleteSessionToken.newInstance();
+            FindAutocompletePredictionsRequest request = FindAutocompletePredictionsRequest.builder()
+                    .setSessionToken(token)
+                    .setQuery(query)
+                    .build();
+
+            placesClient.findAutocompletePredictions(request)
+                    .addOnSuccessListener(response -> {
+                        if (!response.getAutocompletePredictions().isEmpty()) {
+                            adapter.setPredictions(response.getAutocompletePredictions());
+                        } else {
+                            adapter.setPredictions(new ArrayList<>());
+                        }
+                    })
+                    .addOnFailureListener(exception -> {
+                        adapter.setPredictions(new ArrayList<>());
+                        Log.e("PlacesAPI", "Error fetching predictions: " + exception.getMessage());
+                    });
+        } catch (Exception e) {
+            Log.e("PlacesAPI", "Error in performPlacesSearch: " + e.getMessage());
+            adapter.setPredictions(new ArrayList<>());
+        }
+    }
+    private void setupFullscreenDialog(BottomSheetDialog dialog, View view) {
+        BottomSheetBehavior<View> behavior = BottomSheetBehavior.from((View) view.getParent());
+        behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+        behavior.setSkipCollapsed(true);
+
+        View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+        if (bottomSheet != null) {
+            BottomSheetBehavior.from(bottomSheet).setPeekHeight(
+                    Resources.getSystem().getDisplayMetrics().heightPixels);
+            ViewGroup.LayoutParams layoutParams = bottomSheet.getLayoutParams();
+            layoutParams.height = Resources.getSystem().getDisplayMetrics().heightPixels;
+            bottomSheet.setLayoutParams(layoutParams);
+        }
+    }
+
+
+    private void fetchPlaceDetails(String placeId, BottomSheetDialog dialog) {
+        List<Place.Field> placeFields = Arrays.asList(Place.Field.LAT_LNG, Place.Field.ADDRESS);
+        FetchPlaceRequest request = FetchPlaceRequest.builder(placeId, placeFields).build();
+
+        placesClient.fetchPlace(request)
+                .addOnSuccessListener(response -> {
+                    Place place = response.getPlace();
+                    LatLng latLng = place.getLatLng();
+                    String address = place.getAddress();
+
+                    if (latLng != null) {
+                        saveRecentSearch(new RecentSearch(address, latLng.latitude, latLng.longitude));
+                        dialog.dismiss();
+                        moveCamera(latLng.latitude, latLng.longitude);
+                        binding.edSearch.setText(address);
+                    }
+                })
+                .addOnFailureListener(exception -> {
+                    if (exception instanceof ApiException) {
+                        ApiException apiException = (ApiException) exception;
+                        Log.e("PlacesAPI", "Place not found: " + apiException.getMessage());
+                    }
+                });
+    }
+    private void saveRecentSearch(RecentSearch search) {
+        List<RecentSearch> searches = getRecentSearches();
+
+        // Remove duplicate if exists
+        searches.removeIf(s -> s.getAddress().equals(search.getAddress()));
+
+        // Add new search at the beginning
+        searches.add(0, search);
+
+        // Keep only MAX_RECENT_SEARCHES
+        if (searches.size() > MAX_RECENT_SEARCHES) {
+            searches = searches.subList(0, MAX_RECENT_SEARCHES);
+        }
+
+        // Save to SharedPreferences
+        Gson gson = new Gson();
+        String json = gson.toJson(searches);
+        preferenceManager.saveStringValue(PREF_RECENT_SEARCHES, json);
+    }
+
+    private List<RecentSearch> getRecentSearches() {
+        String json = preferenceManager.getStringValue(PREF_RECENT_SEARCHES);
+        if (TextUtils.isEmpty(json)) {
+            return new ArrayList<>();
+        }
+
+        try {
+            Type type = new TypeToken<List<RecentSearch>>(){}.getType();
+            return new Gson().fromJson(json, type);
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
 }

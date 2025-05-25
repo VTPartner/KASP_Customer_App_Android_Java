@@ -64,11 +64,13 @@ public class ScheduledBookingsActivity extends AppCompatActivity {
     private void fetchScheduledBookings() {
         showLoading();
         String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
         String url = APIClient.baseUrl + "get_scheduled_bookings";
 
         JSONObject params = new JSONObject();
         try {
             params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }

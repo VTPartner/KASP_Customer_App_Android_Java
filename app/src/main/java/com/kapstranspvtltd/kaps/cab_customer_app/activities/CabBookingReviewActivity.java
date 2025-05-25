@@ -9,12 +9,16 @@ import android.app.ProgressDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -32,11 +36,13 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.slider.Slider;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.activities.BaseActivity;
 import com.kapstranspvtltd.kaps.activities.HomeActivity;
 import com.kapstranspvtltd.kaps.activities.models.AllGoodsTypesModel;
 import com.kapstranspvtltd.kaps.activities.models.GuidelineModel;
+import com.kapstranspvtltd.kaps.activities.models.UpgradePrice;
 import com.kapstranspvtltd.kaps.activities.models.VehicleModel;
 import com.kapstranspvtltd.kaps.activities.pickup_activities.BookingReviewScreenActivity;
 import com.kapstranspvtltd.kaps.activities.pickup_activities.CouponCodeActivity;
@@ -296,12 +302,12 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
         netFare = tripFare - couponDiscount;
         binding.netFareAmount.setText(String.format("₹%s", df.format(netFare)));
 
-        // Calculate final amount (rounded)
-        finalAmount = Math.round(netFare);
-        binding.finalAmount.setText(String.format("₹%d", (int) finalAmount));
 
-        // Update bottom sheet amount
-        binding.bottomTotalAmount.setText(String.format("₹%d", (int) finalAmount));
+
+        // Update final amount with adjusted price if available
+        finalAmount = adjustedPrice > 0 ? adjustedPrice : Math.round(netFare);
+        binding.finalAmount.setText(String.format("₹%d", (int)finalAmount));
+        binding.bottomTotalAmount.setText(String.format("₹%d", (int)finalAmount));
 
         // Update base fare note if needed
         if (selectedVehicle != null) {
@@ -464,9 +470,14 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
         // Initially show loading state if needed
         binding.recyclerGuidelines.setVisibility(View.GONE);
 
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
         JSONObject requestBody = new JSONObject();
         try {
             requestBody.put("category_id", 2);
+            requestBody.put("customer_id", customerId);
+            requestBody.put("auth", fcmToken);
         } catch (JSONException e) {
             showError("Error creating request: " + e.getMessage());
             return;
@@ -552,7 +563,8 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
         binding.txtPickaddress.setText(pickup.getAddress());
         binding.txtDropaddress.setText(drop.getAddress());
 
-        binding.btnBook.setOnClickListener(v -> saveBookingDetails());
+//        binding.btnBook.setOnClickListener(v -> saveBookingDetails());
+                binding.btnBook.setOnClickListener(v -> showPriceAdjustmentSheet());
     }
 
     private void saveBookingDetails() {
@@ -569,6 +581,7 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
         try {
             cityId = preferenceManager.getStringValue("city_id");
             String customerId = preferenceManager.getStringValue("customer_id");
+            String fcmToken = preferenceManager.getStringValue("fcm_token");
             String url = APIClient.baseUrl + "generate_new_cab_drivers_booking_id_get_nearby_drivers_with_fcm_token";
 
 
@@ -587,6 +600,12 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
                 priceTypeId = "2";
             }
 
+            System.out.println("cab totalPrice before hike price::"+pricePerKm);
+            if(adjustedPrice>0){
+                adjustedPrice-=pricePerKm;
+            }
+            pricePerKm+=adjustedPrice;
+            System.out.println("cab adjustedPrice::"+adjustedPrice);
             // Create JSON body
             JSONObject jsonBody = new JSONObject();
             try {
@@ -613,7 +632,9 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
                 jsonBody.put("coupon_id", couponId);
                 jsonBody.put("coupon_amount", couponDiscount);
                 jsonBody.put("before_coupon_amount", beforeCouponAmount);
+                jsonBody.put("hike_price", adjustedPrice);
                 jsonBody.put("is_scheduled", isScheduledBooking);
+                jsonBody.put("auth", fcmToken);
                 if (isScheduledBooking) {
                     if (scheduledTime.isEmpty()) {
                         showError("Please select a schedule time");
@@ -644,6 +665,12 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
 
                                 bookingId = results.getJSONObject(0).getString("booking_id");
 
+                                if(adjustedPrice>0){
+                                    finalAmount-=adjustedPrice;
+                                    binding.finalAmount.setText(String.format("₹%d", (int)finalAmount));
+                                    binding.bottomTotalAmount.setText(String.format("₹%d", (int)finalAmount));
+                                    adjustedPrice=0;
+                                }
 
                                 if (!isScheduledBooking) {
                                     Intent intent = new Intent(this, CabSearchingActivity.class);
@@ -731,11 +758,16 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
                 if (totalDistance > 30) {
                     priceTypeId = "2";
                 }
+                String customerId = preferenceManager.getStringValue("customer_id");
+                String fcmToken = preferenceManager.getStringValue("fcm_token");
+
                 String url = APIClient.baseUrl + "all_vehicles_with_price_details";
                 JSONObject jsonBody = new JSONObject();
                 jsonBody.put("category_id", 2);
                 jsonBody.put("price_type_id", priceTypeId);
                 jsonBody.put("city_id", cityId);
+                jsonBody.put("customer_id", customerId);
+                jsonBody.put("auth", fcmToken);
 
                 JsonObjectRequest request = new JsonObjectRequest(
                         Request.Method.POST,
@@ -775,7 +807,8 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
                                             roundedPrice,
                                             vehicleObject.getString("size_image"),
                                             vehicleObject.getString("weight"),
-                                            vehicleObject.getInt("outstation_distance")
+                                            vehicleObject.getInt("outstation_distance"),
+                                            vehicleObject.getInt("minimum_waiting_time")
                                     );
                                     vehiclesList.add(vehicle);
                                 }
@@ -827,10 +860,15 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
 
     private void fetchPeakHourPrices(String cityId, Runnable onComplete) {
         try {
+            String customerId = preferenceManager.getStringValue("customer_id");
+            String fcmToken = preferenceManager.getStringValue("fcm_token");
+
             String url = APIClient.baseUrl + "get_peak_hour_prices";
             JSONObject jsonBody = new JSONObject();
             jsonBody.put("city_id", cityId);
             jsonBody.put("category_id", 2);
+            jsonBody.put("customer_id", customerId);
+            jsonBody.put("auth", fcmToken);
 
             JsonObjectRequest request = new JsonObjectRequest(
                     Request.Method.POST,
@@ -932,11 +970,16 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
                 priceTypeId = "2";
             }
 
+            String customerId = preferenceManager.getStringValue("customer_id");
+            String fcmToken = preferenceManager.getStringValue("fcm_token");
+
             String url = APIClient.baseUrl + "all_vehicles_with_price_details";
             JSONObject jsonBody = new JSONObject();
             jsonBody.put("category_id", 2); // Replace with your category ID
             jsonBody.put("price_type_id", priceTypeId);
             jsonBody.put("city_id", cityId);
+            jsonBody.put("customer_id", customerId);
+            jsonBody.put("auth", fcmToken);
 
             JsonObjectRequest request = new JsonObjectRequest(
                     Request.Method.POST,
@@ -974,6 +1017,8 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
                                         vehicleObject.getString("size_image"),
                                         vehicleObject.getString("weight"),
                                         vehicleObject.getInt("outstation_distance")
+                                        ,
+                                        vehicleObject.getInt("minimum_waiting_time")
                                 );
                                 vehiclesList.add(vehicle);
                             }
@@ -1047,6 +1092,218 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
 
     private void showError(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    private double originalPrice = 0.0;
+    private double adjustedPrice = 0.0;
+    private BottomSheetDialog priceAdjustmentDialog;
+
+    private List<UpgradePrice> upgradePrices = new ArrayList<>();
+
+    private void showPriceAdjustmentSheet() {
+        priceAdjustmentDialog = new BottomSheetDialog(this);
+        View sheetView = getLayoutInflater().inflate(R.layout.price_adjustment_bottom_sheet, null);
+        priceAdjustmentDialog.setContentView(sheetView);
+
+        // Initialize views
+        ImageView ivClose = sheetView.findViewById(R.id.ivClose);
+        TextView tvAdjustedPrice = sheetView.findViewById(R.id.tvAdjustedPrice);
+        TextView titleText = sheetView.findViewById(R.id.ptitleTxt);
+        TextView priceText = sheetView.findViewById(R.id.ppriceText);
+        Slider priceSlider = sheetView.findViewById(R.id.priceSlider);
+        Button btnConfirmPrice = sheetView.findViewById(R.id.btnConfirmPrice);
+        LinearLayout priceRangeContainer = sheetView.findViewById(R.id.priceRangeContainer);
+
+        titleText.setText("Choose Your Fare\nfor a Comfortable Ride");
+        priceText.setText("Higher fare improves your chances\nof getting a cab quickly");
+
+        // Set initial values
+        originalPrice = finalAmount;
+        adjustedPrice = originalPrice;
+        tvAdjustedPrice.setText("₹" + (int)adjustedPrice);
+        btnConfirmPrice.setText("Book " + selectedVehicle.getVehicleName() + " for ₹" + (int)adjustedPrice);
+
+        // Fetch upgrade prices
+        fetchUpgradePrices(selectedVehicle.getVehicleId(), priceRangeContainer, priceSlider,tvAdjustedPrice,btnConfirmPrice);
+
+        // Handle close
+        ivClose.setOnClickListener(v -> {
+            adjustedPrice = originalPrice;
+            updateFareBreakdown();
+            priceAdjustmentDialog.dismiss();
+        });
+
+        // Handle confirm
+        btnConfirmPrice.setOnClickListener(v -> {
+            finalAmount = adjustedPrice;
+            updateFareBreakdown();
+            priceAdjustmentDialog.dismiss();
+            saveBookingDetails();
+        });
+
+        priceAdjustmentDialog.show();
+    }
+
+    private void fetchUpgradePrices(int vehicleId, LinearLayout container, Slider slider, TextView tvAdjustedPrice, Button btnConfirmPrice) {
+        try {
+            String customerId = preferenceManager.getStringValue("customer_id");
+            String fcmToken = preferenceManager.getStringValue("fcm_token");
+
+            JSONObject requestBody = new JSONObject();
+            requestBody.put("vehicle_id", vehicleId);
+            requestBody.put("customer_id", customerId);
+            requestBody.put("auth", fcmToken);
+
+            JsonObjectRequest request = new JsonObjectRequest(
+                    Request.Method.POST,
+                    APIClient.baseUrl + "get_vehicle_upgrade_prices",
+                    requestBody,
+                    response -> {
+                        try {
+                            // Show only base price option
+                            container.removeAllViews();
+                            container.addView(createPriceRangeView("Base", 0));
+
+                            // Hide slider by default
+                            slider.setVisibility(View.GONE);
+
+                            // Check if upgrade prices exist
+                            if (response.has("upgrade_prices")) {
+                                JSONArray upgradeArray = response.getJSONArray("upgrade_prices");
+                                if (upgradeArray.length() > 0) {
+                                    // Show slider if we have upgrade prices
+                                    slider.setVisibility(View.VISIBLE);
+                                    setupUpgradePrices(upgradeArray, container, slider, tvAdjustedPrice, btnConfirmPrice);
+                                }
+                            }
+
+                            // Initial price display
+                            adjustedPrice = originalPrice;
+                            updatePriceDisplay(tvAdjustedPrice, btnConfirmPrice, 0);
+                            highlightSelectedPriceRange(container, 0);
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            handleUpgradePricesError(container, slider, tvAdjustedPrice, btnConfirmPrice);
+                        }
+                    },
+                    error -> {
+                        if (error.networkResponse != null && error.networkResponse.statusCode == 404) {
+                            // Handle 404 - show only base price
+                            handleUpgradePricesError(container, slider, tvAdjustedPrice, btnConfirmPrice);
+                        } else {
+                            showError("Error loading price ranges");
+                        }
+                    }
+            );
+
+            VolleySingleton.getInstance(this).addToRequestQueue(request);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            handleUpgradePricesError(container, slider, tvAdjustedPrice, btnConfirmPrice);
+        }
+    }
+
+    private void handleUpgradePricesError(LinearLayout container, Slider slider, TextView tvAdjustedPrice, Button btnConfirmPrice) {
+        // Clear container and show only base price
+        container.removeAllViews();
+        container.addView(createPriceRangeView("Base", 0));
+
+        // Hide slider
+        slider.setVisibility(View.GONE);
+
+        // Set initial price display
+        adjustedPrice = originalPrice;
+        updatePriceDisplay(tvAdjustedPrice, btnConfirmPrice, 0);
+        highlightSelectedPriceRange(container, 0);
+    }
+
+    private void setupUpgradePrices(JSONArray upgradeArray, LinearLayout container, Slider slider, TextView tvAdjustedPrice, Button btnConfirmPrice) throws JSONException {
+        upgradePrices.clear();
+        List<Float> validSteps = new ArrayList<>();
+        validSteps.add(0f);
+
+        for (int i = 0; i < upgradeArray.length(); i++) {
+            JSONObject upgrade = upgradeArray.getJSONObject(i);
+            float price = (float) upgrade.getDouble("price");
+            String name = upgrade.getString("upgrade_name");
+
+            upgradePrices.add(new UpgradePrice(price, name));
+            container.addView(createPriceRangeView(name, price));
+            validSteps.add(price);
+        }
+
+        // Configure slider
+        float maxUpgrade = validSteps.get(validSteps.size() - 1);
+        slider.setValueFrom(0);
+        slider.setValueTo(maxUpgrade);
+
+        // Calculate step size based on number of valid steps
+        float stepSize = maxUpgrade / (validSteps.size() - 1);
+        slider.setStepSize(stepSize);
+
+        // Update slider listener
+        slider.addOnChangeListener((s, value, fromUser) -> {
+            float closestStep = findClosestValidStep(value, validSteps);
+            adjustedPrice = originalPrice + closestStep;
+            updatePriceDisplay(tvAdjustedPrice, btnConfirmPrice, closestStep);
+            highlightSelectedPriceRange(container, closestStep);
+        });
+    }
+    private float findClosestValidStep(float value, List<Float> validSteps) {
+        float closest = validSteps.get(0);
+        float minDiff = Math.abs(value - closest);
+
+        for (float step : validSteps) {
+            float diff = Math.abs(value - step);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = step;
+            }
+        }
+        return closest;
+    }
+
+    private void updatePriceDisplay(TextView tvAdjustedPrice, Button btnConfirmPrice, float upgrade) {
+        tvAdjustedPrice.setText(String.format("₹%d", (int)adjustedPrice));
+        String buttonText = upgrade == 0 ?
+                String.format("Book %s for ₹%d", selectedVehicle.getVehicleName(), (int)adjustedPrice) :
+                String.format("Book %s for ₹%d (+₹%d)", selectedVehicle.getVehicleName(), (int)adjustedPrice, (int)upgrade);
+        btnConfirmPrice.setText(buttonText);
+    }
+
+    private void highlightSelectedPriceRange(LinearLayout container, float selectedUpgrade) {
+        for (int i = 0; i < container.getChildCount(); i++) {
+            View child = container.getChildAt(i);
+            if (child instanceof TextView) {
+                TextView tv = (TextView) child;
+                float upgradeValue = i == 0 ? 0 : upgradePrices.get(i-1).price;
+
+                if (Math.abs(upgradeValue - selectedUpgrade) < 0.01) { // Use small epsilon for float comparison
+                    tv.setTextColor(getResources().getColor(R.color.colorPrimary));
+                    tv.setTypeface(null, Typeface.BOLD);
+                } else {
+                    tv.setTextColor(getResources().getColor(R.color.grey));
+                    tv.setTypeface(null, Typeface.NORMAL);
+                }
+            }
+        }
+    }
+
+
+    private View createPriceRangeView(String label, float price) {
+        TextView tv = new TextView(this);
+        tv.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f
+        ));
+        tv.setText(price == 0 ? "Base" : "+" + (int)price);
+        tv.setTextColor(getResources().getColor(R.color.grey));
+        tv.setGravity(Gravity.CENTER);
+        tv.setPadding(16, 8, 16, 8);
+        return tv;
     }
 
 }

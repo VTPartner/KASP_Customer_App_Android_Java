@@ -115,6 +115,13 @@
                         android:gravity="center|start"
                         android:text="PK20215487GD"
                         android:textSize="10dp" />
+                    <TextView
+                        android:id="@+id/totaldistance"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center|start"
+                        android:text="0km"
+                        android:textSize="10dp" />
                 </LinearLayout>
 
                 <TextView

@@ -178,12 +178,16 @@ public class JcbCraneOrderDetailsActivity extends AppCompatActivity implements O
         if (orderDetails == null) return;
 
         custPrograssbar.prograssCreate(this);
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
 
         JSONObject params = new JSONObject();
         try {
             params.put("order_id", orderDetails.getOrderId());
             params.put("ratings", rating);
             params.put("ratings_description", comment);
+            params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -333,8 +337,12 @@ public class JcbCraneOrderDetailsActivity extends AppCompatActivity implements O
         showLoading(true);
 
         JSONObject params = new JSONObject();
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
         try {
             params.put("order_id", orderId);
+            params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }

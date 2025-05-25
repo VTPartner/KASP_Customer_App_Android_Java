@@ -186,11 +186,16 @@ public class HandymanOrderDetailsActivity extends AppCompatActivity implements O
 
         custPrograssbar.prograssCreate(this);
 
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
         JSONObject params = new JSONObject();
         try {
             params.put("order_id", orderDetails.getOrderId());
             params.put("ratings", rating);
             params.put("ratings_description", comment);
+            params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -339,9 +344,14 @@ public class HandymanOrderDetailsActivity extends AppCompatActivity implements O
     private void fetchOrderDetails(String orderId) {
         showLoading(true);
 
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
         JSONObject params = new JSONObject();
         try {
             params.put("order_id", orderId);
+            params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }

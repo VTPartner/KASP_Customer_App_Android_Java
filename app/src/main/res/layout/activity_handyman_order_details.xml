@@ -115,6 +115,7 @@
                         android:gravity="center|start"
                         android:text="PK20215487GD"
                         android:textSize="10dp" />
+
                 </LinearLayout>
 
                 <TextView

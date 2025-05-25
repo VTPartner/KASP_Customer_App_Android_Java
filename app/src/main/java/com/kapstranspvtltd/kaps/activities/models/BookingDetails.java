@@ -43,6 +43,36 @@ public class BookingDetails {
 
     private double couponDiscountAmount;
 
+    private double penaltyAmount;
+
+    public double getPenaltyChargeAmount() {
+        return penaltyChargeAmount;
+    }
+
+    public void setPenaltyChargeAmount(double penaltyChargeAmount) {
+        this.penaltyChargeAmount = penaltyChargeAmount;
+    }
+
+    private double penaltyChargeAmount;
+
+    public void setPenaltyAmount(double amount) {
+        this.penaltyAmount = amount;
+    }
+
+    public double getPenaltyAmount() {
+        return penaltyAmount;
+    }
+
+    public double getBasePrice() {
+        return basePrice;
+    }
+
+    public void setBasePrice(double basePrice) {
+        this.basePrice = basePrice;
+    }
+
+    private double basePrice;
+
     public List<DropLocation> getDropLocations() {
         return dropLocations;
     }

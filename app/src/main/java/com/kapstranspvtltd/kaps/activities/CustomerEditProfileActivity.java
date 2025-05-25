@@ -59,9 +59,11 @@ public class CustomerEditProfileActivity extends AppCompatActivity {
     private void loadCustomerDetails() {
         progressDialog.show();
 
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
         JSONObject jsonBody = new JSONObject();
         try {
             jsonBody.put("customer_id", customerId);
+            jsonBody.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -118,6 +120,7 @@ public class CustomerEditProfileActivity extends AppCompatActivity {
     private void updateProfile() {
         progressDialog.show();
 
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
         JSONObject jsonBody = new JSONObject();
         try {
             jsonBody.put("customer_id", customerId);
@@ -132,6 +135,7 @@ public class CustomerEditProfileActivity extends AppCompatActivity {
             jsonBody.put("ifsc_code", binding.editTextIfscCode.getText().toString());
             jsonBody.put("account_number", binding.editTextAccountNumber.getText().toString());
             jsonBody.put("account_name", binding.editTextAccountName.getText().toString());
+            jsonBody.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }

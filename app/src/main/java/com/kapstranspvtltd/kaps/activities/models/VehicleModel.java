@@ -16,6 +16,18 @@ public class VehicleModel {
 
     private int outStationDistance;
 
+    public int getMinimumWaitingTime() {
+        return minimumWaitingTime;
+    }
+
+    public void setMinimumWaitingTime(int minimumWaitingTime) {
+        this.minimumWaitingTime = minimumWaitingTime;
+    }
+
+    private int minimumWaitingTime;
+
+
+
     // Default constructor
     public VehicleModel() {
     }
@@ -30,7 +42,7 @@ public class VehicleModel {
     // Full constructor
     public VehicleModel(int vehicleId, String vehicleName, String vehicleImage,
                         double baseFare, double pricePerKm, String sizeImage,
-                        String weight,int outStationDistance) {
+                        String weight,int outStationDistance,int minimumWaitingTime) {
         this.vehicleId = vehicleId;
         this.vehicleName = vehicleName;
         this.vehicleImage = vehicleImage;
@@ -39,6 +51,7 @@ public class VehicleModel {
         this.sizeImage = sizeImage;
         this.weight = weight;
         this.outStationDistance = outStationDistance;
+        this.minimumWaitingTime = minimumWaitingTime;
 
     }
 
@@ -146,6 +159,7 @@ public class VehicleModel {
                 ", startDistance=" + startDistance +
                 ", afterPrice=" + afterPrice +
                 ", timeTaken=" + timeTaken +
+                ", minimumWaitingTime=" + minimumWaitingTime +
                 '}';
     }
 

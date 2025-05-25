@@ -187,11 +187,16 @@ public class OrderDetailsScreenActivity extends AppCompatActivity implements OnM
 
         custPrograssbar.prograssCreate(this);
 
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
         JSONObject params = new JSONObject();
         try {
             params.put("order_id", orderDetails.getOrderId());
             params.put("ratings", rating);
             params.put("ratings_description", comment);
+            params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -380,9 +385,14 @@ public class OrderDetailsScreenActivity extends AppCompatActivity implements OnM
     private void fetchOrderDetails(String orderId) {
         showLoading(true);
 
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
         JSONObject params = new JSONObject();
         try {
             params.put("order_id", orderId);
+            params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -433,6 +443,7 @@ public class OrderDetailsScreenActivity extends AppCompatActivity implements OnM
         if (orderDetails == null) return;
 
         binding.toolbarTitle.setText("Order #" + orderDetails.getOrderId());
+        binding.totaldistance.setText("Distance: "+orderDetails.getDistance()+"km");
         binding.txtDate.setText(orderDetails.getFormattedBookingTiming());
         binding.txtPackid.setText("# CRN " + orderDetails.getOrderId());
         binding.txtttotle.setText(orderDetails.getFormattedPriceTotal());

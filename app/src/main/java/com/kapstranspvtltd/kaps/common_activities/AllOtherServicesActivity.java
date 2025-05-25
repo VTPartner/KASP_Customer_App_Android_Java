@@ -20,6 +20,7 @@ import com.kapstranspvtltd.kaps.driver_customer_app.activities.DriverPickupLocat
 import com.kapstranspvtltd.kaps.handyman_customer_app.activities.HandymanWorkLocationActivity;
 import com.kapstranspvtltd.kaps.jcb_crane_customer_app.activities.JcbCraneWorkLocationActivity;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
+import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -39,6 +40,8 @@ public class AllOtherServicesActivity extends AppCompatActivity implements Other
 
     String categoryName,subCatName;
 
+    PreferenceManager preferenceManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,6 +49,8 @@ public class AllOtherServicesActivity extends AppCompatActivity implements Other
         Glb.serviceName = "";
         binding = ActivityAllOtherServicesBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        preferenceManager = new PreferenceManager(this);
 
         // Initialize Volley RequestQueue
         requestQueue = Volley.newRequestQueue(this);
@@ -77,10 +82,15 @@ public class AllOtherServicesActivity extends AppCompatActivity implements Other
     private void fetchOtherServices() {
         showLoading(true);
 
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
         String url = APIClient.baseUrl + "get_all_sub_services";
         JSONObject params = new JSONObject();
         try {
             params.put("sub_cat_id", subCategoryId);
+            params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }

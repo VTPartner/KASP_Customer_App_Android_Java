@@ -11,6 +11,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -19,6 +21,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.location.Address;
 import android.location.Criteria;
@@ -29,10 +32,15 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.ContactsContract;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -40,6 +48,15 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.NetworkError;
+import com.android.volley.NoConnectionError;
+import com.android.volley.Request;
+import com.android.volley.ServerError;
+import com.android.volley.TimeoutError;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -49,24 +66,36 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.AutocompleteSessionToken;
 import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.api.net.FetchPlaceRequest;
+import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest;
+import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.libraries.places.widget.Autocomplete;
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.activities.BaseActivity;
 import com.kapstranspvtltd.kaps.activities.pickup_activities.GoodsDriverMapDropLocationActivity;
 import com.kapstranspvtltd.kaps.activities.pickup_activities.GoodsPickupMapLocationActivity;
 import com.kapstranspvtltd.kaps.activities.pickup_activities.ReviewMapActivity;
 import com.kapstranspvtltd.kaps.common_activities.Glb;
+import com.kapstranspvtltd.kaps.common_activities.adapters.PlaceSuggestionAdapter;
+import com.kapstranspvtltd.kaps.common_activities.adapters.RecentSearchAdapter;
+import com.kapstranspvtltd.kaps.common_activities.models.RecentSearch;
 import com.kapstranspvtltd.kaps.databinding.ActivityCabBookingDropLocationBinding;
 import com.kapstranspvtltd.kaps.databinding.ActivityDriverDropLocationBinding;
 import com.kapstranspvtltd.kaps.driver_customer_app.activities.DriverDropLocationActivity;
 import com.kapstranspvtltd.kaps.driver_customer_app.activities.DriverRouteDetailsActivity;
 import com.kapstranspvtltd.kaps.model.User;
+import com.kapstranspvtltd.kaps.network.VolleySingleton;
 import com.kapstranspvtltd.kaps.polygon.Point;
 import com.kapstranspvtltd.kaps.polygon.Polygon;
+import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.CustPrograssbar;
 import com.kapstranspvtltd.kaps.utility.Drop;
 import com.kapstranspvtltd.kaps.utility.Pickup;
@@ -74,10 +103,17 @@ import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 import com.kapstranspvtltd.kaps.utility.SessionManager;
 import com.kapstranspvtltd.kaps.utility.Utility;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public class CabBookingDropLocationActivity extends BaseActivity implements OnMapReadyCallback {
@@ -99,6 +135,8 @@ public class CabBookingDropLocationActivity extends BaseActivity implements OnMa
     PreferenceManager preferenceManager;
 
     boolean showExactLocation = false;
+
+    boolean proceedToNextScreen = false;
 
     ActivityResultLauncher<Intent> launcher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -142,14 +180,30 @@ public class CabBookingDropLocationActivity extends BaseActivity implements OnMa
 
 int categoryId;
 String categoryName;
+
+    private PlacesClient placesClient;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityCabBookingDropLocationBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+
+        if (!Places.isInitialized()) {
+            Places.initialize(getApplicationContext(), getString(R.string.google_maps_key), Locale.US);
+        }
+        placesClient = Places.createClient(this);
+
         preferenceManager = new PreferenceManager(this);
         categoryId = getIntent().getIntExtra("category_id", 1);
         categoryName = getIntent().getStringExtra("category_name");
+        pickup = getIntent().getParcelableExtra("pickup");
+        if(pickup == null){
+            finish();
+            return;
+        }
+
+        checkPincodeAndShowDialog(pickup.getLat(),pickup.getLog());
         initializeViews();
         setupClickListeners();
 
@@ -172,9 +226,9 @@ String categoryName;
 //        user = sessionManager.getUserDetails();
         fusedLocationProviderClient = getFusedLocationProviderClient(this);
 
-        if (!Places.isInitialized()) {
-            Places.initialize(getApplicationContext(), getString(R.string.google_maps_key), Locale.US);
-        }
+//        if (!Places.isInitialized()) {
+//            Places.initialize(getApplicationContext(), getString(R.string.google_maps_key), Locale.US);
+//        }
     }
 
     private void setupClickListeners() {
@@ -210,12 +264,22 @@ String categoryName;
             finish();
             overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
         } else if (v.getId() == R.id.ed_search) {
-            launchPlacesAutocomplete();
+            v.setEnabled(false);
+            showCustomPlacesSearch();
+            v.postDelayed(() -> v.setEnabled(true), 100);
+//            launchPlacesAutocomplete();
         }
         else if (v.getId() == R.id.editDropLocation) {
-            launchPlacesAutocomplete();
+            v.setEnabled(false);
+            showCustomPlacesSearch();
+            v.postDelayed(() -> v.setEnabled(true), 100);
+//            launchPlacesAutocomplete();
         }
         else if (v.getId() == R.id.btn_send) {
+            if(!proceedToNextScreen){
+                showError("Service not available for this pickup location");
+                return;
+            }
             showBottomConfirmDialog();
         } else if (v.getId() == R.id.img_currunt) {
             animateCurrentLocationButton();
@@ -668,6 +732,9 @@ String categoryName;
         if (custPrograssbar != null) {
             custPrograssbar.closePrograssBar();
         }
+        if (placesClient != null) {
+            Places.deinitialize();
+        }
 
     }
 
@@ -742,5 +809,359 @@ String categoryName;
                 edMobile.setText(phoneNumber.replaceAll("[^0-9]", "")); // Remove non-numeric characters
             }
         }
+    }
+
+    private void checkPincodeAndShowDialog(double latitude, double longitude) {
+        System.out.println("checkPincodeAndShowDialog");
+
+
+        // Get pincode using Geocoder
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        try {
+            List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
+            if (addresses != null && !addresses.isEmpty()) {
+                String pincode = addresses.get(0).getPostalCode();
+                if (pincode != null && !pincode.isEmpty()) {
+                    checkPincodeAvailability(pincode);
+                } else {
+                    showError("Pickup location availability information is currently unavailable.");
+
+                }
+            }
+        } catch (Exception e) {
+            showError("Error fetching pincode");
+
+        }
+    }
+
+
+    private void checkPincodeAvailability(String pincode) {
+        try {
+            String url = APIClient.baseUrl + "allowed_pin_code";
+
+            String customerId = preferenceManager.getStringValue("customer_id");
+            String fcmToken = preferenceManager.getStringValue("fcm_token");
+
+            JSONObject jsonBody = new JSONObject();
+            jsonBody.put("pincode", pincode);
+            jsonBody.put("customer_id", customerId);
+            jsonBody.put("auth", fcmToken);
+
+            JsonObjectRequest request = new JsonObjectRequest(
+                    Request.Method.POST,
+                    url,
+                    jsonBody,
+                    response -> {
+
+                        try {
+                            // Check if results array exists and is not empty
+                            if (response.has("results")) {
+                                JSONArray results = response.getJSONArray("results");
+                                if (results.length() > 0) {
+                                    // Get the city_id and outstation_distance from the first result
+                                    JSONObject result = results.getJSONObject(0);
+                                    String cityId = result.getString("city_id");
+                                    double outstationDistance = result.getDouble("outstation_distance");
+                                    System.out.println("cityID :"+cityId+" outstationDistance::"+outstationDistance);
+                                    // Store both values
+                                    preferenceManager.saveStringValue("city_id", cityId);
+                                    preferenceManager.saveFloatValue("outstation_distance", (float) outstationDistance);
+
+                                    proceedToNextScreen = true;
+                                } else {
+                                    showError("No service available in this area");
+                                    proceedToNextScreen = false;
+                                }
+                            } else if (response.has("message")) {
+                                // Show error message from API
+                                showError(response.getString("message"));
+                            } else {
+                                showError("Service not available in this area");
+                            }
+                        } catch (Exception e) {
+                            Log.e("PincodeCheck", "Error parsing response: " + e.getMessage());
+                            showError("Error processing response");
+                        }
+                    },
+                    error -> {
+
+                        if (error.networkResponse != null && error.networkResponse.statusCode == 404) {
+                            showError("Service not available in this area");
+                        } else {
+                            handleVolleyError(error);
+                        }
+                    }
+            ) {
+                @Override
+                public Map<String, String> getHeaders() {
+                    Map<String, String> headers = new HashMap<>();
+                    headers.put("Content-Type", "application/json");
+                    return headers;
+                }
+            };
+
+            request.setRetryPolicy(new DefaultRetryPolicy(
+                    30000,
+                    DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                    DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+            ));
+
+            VolleySingleton.getInstance(this).addToRequestQueue(request);
+
+        } catch (Exception e) {
+
+            Log.e("PincodeCheck", "Error creating request: " + e.getMessage());
+            showError("Failed to check pincode availability");
+        }
+    }
+
+    private void handleVolleyError(VolleyError error) {
+        String message;
+        if (error.networkResponse != null) {
+            switch (error.networkResponse.statusCode) {
+                case 400:
+                    message = "Invalid request";
+                    break;
+                case 404:
+                    message = "Service not available in this area";
+                    break;
+                case 405:
+                    message = "Invalid request method";
+                    break;
+                case 500:
+                    message = "Server error, please try again later";
+                    break;
+                default:
+                    message = "Error: " + error.networkResponse.statusCode;
+                    break;
+            }
+        } else if (error instanceof TimeoutError || error instanceof NoConnectionError) {
+            message = "Connection timeout. Please check your internet connection";
+        } else if (error instanceof NetworkError) {
+            message = "Network error. Please check your internet connection";
+        } else if (error instanceof ServerError) {
+            message = "Server error. Please try again later";
+        } else {
+            message = "An unexpected error occurred";
+        }
+
+        showError(message);
+        Log.e("VolleyError", "Error: " + message);
+    }
+
+    private static final String PREF_RECENT_SEARCHES = "recent_cab_drop_searches";
+    private static final int MAX_RECENT_SEARCHES = 10;
+
+
+
+    private void showCustomPlacesSearch() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.custom_places_search_dialog, null);
+        dialog.setContentView(view);
+
+        setupFullscreenDialog(dialog, view);
+
+        EditText searchEditText = view.findViewById(R.id.searchEditText);
+        RecyclerView recyclerView = view.findViewById(R.id.recentSearchesRecyclerView);
+        TextView recentSearchesTitle = view.findViewById(R.id.recentSearchesTitle);
+
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        // Create adapters
+        PlaceSuggestionAdapter suggestionsAdapter = new PlaceSuggestionAdapter(
+                prediction -> fetchPlaceDetails(prediction.getPlaceId(), dialog));
+
+        List<RecentSearch> recentSearches = getRecentSearches();
+        RecentSearchAdapter recentAdapter = new RecentSearchAdapter(recentSearches,
+                search -> {
+                    dialog.dismiss();
+                    moveCamera(search.getLatitude(), search.getLongitude());
+                    binding.edSearch.setText(search.getAddress());
+                });
+
+        // Show recent searches initially
+        if (!recentSearches.isEmpty()) {
+            recentSearchesTitle.setVisibility(View.VISIBLE);
+            recyclerView.setAdapter(recentAdapter);
+        } else {
+            recentSearchesTitle.setVisibility(View.GONE);
+        }
+
+        // Setup search functionality
+        searchEditText.addTextChangedListener(new TextWatcher() {
+            private Handler handler = new Handler();
+            private Runnable runnable;
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                handler.removeCallbacks(runnable);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (s.length() > 0) {
+                    recentSearchesTitle.setVisibility(View.GONE);
+                    recyclerView.setAdapter(suggestionsAdapter);
+                    runnable = () -> performPlacesSearch(s.toString(), suggestionsAdapter);
+                    handler.postDelayed(runnable, 600);
+                } else {
+                    // Show recent searches when search text is empty
+                    if (!recentSearches.isEmpty()) {
+                        recentSearchesTitle.setVisibility(View.VISIBLE);
+                        recyclerView.setAdapter(recentAdapter);
+                    } else {
+                        recentSearchesTitle.setVisibility(View.GONE);
+                    }
+                    suggestionsAdapter.setPredictions(new ArrayList<>());
+                }
+            }
+        });
+
+        // Auto focus and show keyboard
+        searchEditText.requestFocus();
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(searchEditText, InputMethodManager.SHOW_IMPLICIT);
+
+        dialog.show();
+    }
+
+
+
+    private void performPlacesSearch(String query, PlaceSuggestionAdapter adapter) {
+        try {
+            if (query.length() < 2) {
+                adapter.setPredictions(new ArrayList<>());
+                return;
+            }
+
+            if (!Places.isInitialized()) {
+                Places.initialize(getApplicationContext(), getString(R.string.google_maps_key));
+                placesClient = Places.createClient(this);
+            }
+
+            AutocompleteSessionToken token = AutocompleteSessionToken.newInstance();
+            FindAutocompletePredictionsRequest request = FindAutocompletePredictionsRequest.builder()
+                    .setSessionToken(token)
+                    .setQuery(query)
+                    .build();
+
+            placesClient.findAutocompletePredictions(request)
+                    .addOnSuccessListener(response -> {
+                        if (!response.getAutocompletePredictions().isEmpty()) {
+                            adapter.setPredictions(response.getAutocompletePredictions());
+                        } else {
+                            adapter.setPredictions(new ArrayList<>());
+                        }
+                    })
+                    .addOnFailureListener(exception -> {
+                        adapter.setPredictions(new ArrayList<>());
+                        Log.e("PlacesAPI", "Error fetching predictions: " + exception.getMessage());
+                    });
+        } catch (Exception e) {
+            Log.e("PlacesAPI", "Error in performPlacesSearch: " + e.getMessage());
+            adapter.setPredictions(new ArrayList<>());
+        }
+    }
+    private void setupFullscreenDialog(BottomSheetDialog dialog, View view) {
+        BottomSheetBehavior<View> behavior = BottomSheetBehavior.from((View) view.getParent());
+        behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+        behavior.setSkipCollapsed(true);
+
+        View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+        if (bottomSheet != null) {
+            BottomSheetBehavior.from(bottomSheet).setPeekHeight(
+                    Resources.getSystem().getDisplayMetrics().heightPixels);
+            ViewGroup.LayoutParams layoutParams = bottomSheet.getLayoutParams();
+            layoutParams.height = Resources.getSystem().getDisplayMetrics().heightPixels;
+            bottomSheet.setLayoutParams(layoutParams);
+        }
+    }
+
+
+    private void fetchPlaceDetails(String placeId, BottomSheetDialog dialog) {
+        List<Place.Field> placeFields = Arrays.asList(Place.Field.LAT_LNG, Place.Field.ADDRESS);
+        FetchPlaceRequest request = FetchPlaceRequest.builder(placeId, placeFields).build();
+
+        placesClient.fetchPlace(request)
+                .addOnSuccessListener(response -> {
+                    Place place = response.getPlace();
+                    LatLng latLng = place.getLatLng();
+                    String address = place.getAddress();
+
+                    if (latLng != null) {
+                        saveRecentSearch(new RecentSearch(address, latLng.latitude, latLng.longitude));
+                        dialog.dismiss();
+                        moveCamera(latLng.latitude, latLng.longitude);
+                        binding.edSearch.setText(address);
+                    }
+                })
+                .addOnFailureListener(exception -> {
+                    if (exception instanceof ApiException) {
+                        ApiException apiException = (ApiException) exception;
+                        Log.e("PlacesAPI", "Place not found: " + apiException.getMessage());
+                    }
+                });
+    }
+    private void saveRecentSearch(RecentSearch search) {
+        List<RecentSearch> searches = getRecentSearches();
+
+        // Remove duplicate if exists
+        searches.removeIf(s -> s.getAddress().equals(search.getAddress()));
+
+        // Add new search at the beginning
+        searches.add(0, search);
+
+        // Keep only MAX_RECENT_SEARCHES
+        if (searches.size() > MAX_RECENT_SEARCHES) {
+            searches = searches.subList(0, MAX_RECENT_SEARCHES);
+        }
+
+        // Save to SharedPreferences
+        Gson gson = new Gson();
+        String json = gson.toJson(searches);
+        preferenceManager.saveStringValue(PREF_RECENT_SEARCHES, json);
+    }
+
+    private List<RecentSearch> getRecentSearches() {
+        String json = preferenceManager.getStringValue(PREF_RECENT_SEARCHES);
+        if (TextUtils.isEmpty(json)) {
+            return new ArrayList<>();
+        }
+
+        try {
+            Type type = new TypeToken<List<RecentSearch>>(){}.getType();
+            return new Gson().fromJson(json, type);
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private void moveCamera(double lat, double lng) {
+        if (mMap == null) return;
+
+        mMap.clear();
+        showExactLocation = false;
+        LatLng coordinate = new LatLng(lat, lng);
+
+        // Smooth camera movement
+        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(coordinate, 100);
+        mMap.animateCamera(cameraUpdate, new GoogleMap.CancelableCallback() {
+            @Override
+            public void onFinish() {
+                // Animation completed
+                binding.locationMarkertext.animate()
+                        .alpha(1f)
+                        .setDuration(200)
+                        .start();
+            }
+
+            @Override
+            public void onCancel() {
+                // Animation canceled
+            }
+        });
     }
 }

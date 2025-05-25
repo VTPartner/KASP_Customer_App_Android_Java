@@ -97,11 +97,13 @@ public class GoodsOrdersFragment extends Fragment {
     private void fetchRecentBookings() {
         showLoading();
         String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
         String url = APIClient.baseUrl + "customers_all_bookings";
 
         JSONObject params = new JSONObject();
         try {
             params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -138,12 +140,14 @@ public class GoodsOrdersFragment extends Fragment {
         showLoading();
 
         String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
         System.out.println("customerId::"+customerId);
         String url = APIClient.baseUrl + "customers_all_orders";
 
         try {
             JSONObject params = new JSONObject();
             params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
 
             JsonObjectRequest request = new JsonObjectRequest(
                     Request.Method.POST,

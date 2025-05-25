@@ -12,18 +12,22 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -44,16 +48,17 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.slider.Slider;
 import com.kapstranspvtltd.kaps.activities.BaseActivity;
 import com.kapstranspvtltd.kaps.activities.HomeActivity;
 import com.kapstranspvtltd.kaps.activities.models.AllGoodsTypesModel;
 import com.kapstranspvtltd.kaps.activities.models.GuidelineModel;
+import com.kapstranspvtltd.kaps.activities.models.UpgradePrice;
 import com.kapstranspvtltd.kaps.activities.models.VehicleModel;
 import com.kapstranspvtltd.kaps.adapters.GoodsTypeAdapter;
 import com.kapstranspvtltd.kaps.adapters.GuidelinesAdapter;
 import com.kapstranspvtltd.kaps.adapters.VehicleAdapter;
 import com.kapstranspvtltd.kaps.common_activities.Glb;
-import com.kapstranspvtltd.kaps.common_activities.Glb.*;
 import com.kapstranspvtltd.kaps.databinding.ItemDropBinding;
 import com.kapstranspvtltd.kaps.fcm.AccessToken;
 import com.kapstranspvtltd.kaps.model.Coupon;
@@ -99,6 +104,8 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
 
     private double netFare = 0.0;
     private double finalAmount = 0.0;
+
+    private int minimumWaitingTime = 0;
 
     int couponId = -1;
     double couponDiscountAmount = 0.0;
@@ -173,6 +180,8 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
             totalDuration = getIntent().getLongExtra("total_time", 0);
             exactTime = getIntent().getStringExtra("exact_time");
             exactDistance = getIntent().getStringExtra("exact_distance");
+
+            minimumWaitingTime = getIntent().getIntExtra("vehicle_minimum_waiting_time",0);
 
             // Log the received values
             Log.d("BookingReview", "Distance: " + totalDistance + " km");
@@ -491,11 +500,10 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
             binding.netFareAmount.setText(String.format("₹%s", df.format(netFare)));
 
             // Calculate final amount (rounded)
-            finalAmount = Math.round(netFare);
-            binding.finalAmount.setText(String.format("₹%d", (int) finalAmount));
-
-            // Update bottom sheet amount
-            binding.bottomTotalAmount.setText(String.format("₹%d", (int) finalAmount));
+            // Update final amount with adjusted price if available
+            finalAmount = adjustedPrice > 0 ? adjustedPrice : Math.round(netFare);
+            binding.finalAmount.setText(String.format("₹%d", (int)finalAmount));
+            binding.bottomTotalAmount.setText(String.format("₹%d", (int)finalAmount));
 
             // Update base fare note if needed
             if (selectedVehicle != null) {
@@ -504,14 +512,22 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
                         selectedVehicle.getBaseFare()
                 ));
             }
+
+
         }
     }
 
     private void fetchGoodsTypes() {
         showLoading(true);
         String url = APIClient.baseUrl + "get_all_goods_types";
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
 
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url, null,
+        Map<String, String> params = new HashMap<>();
+        params.put("customer_id", customerId);
+        params.put("auth", fcmToken);
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url, new JSONObject(params),
                 response -> {
                     showLoading(false);
                     try {
@@ -664,10 +680,15 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         editor.putInt("reward_goods_points", randomNumber);
         editor.apply();
 
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
         // Create request body
         JSONObject requestBody = new JSONObject();
         try {
             requestBody.put("category_id", cabService ? 2 : 1); // Replace with your category ID
+            requestBody.put("customer_id", customerId);
+            requestBody.put("auth", fcmToken);
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
@@ -755,12 +776,13 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         binding.txtPickaddress.setText(pickup.getAddress());
         binding.txtDropaddress.setText(drop.getAddress());
 
-        binding.btnBook.setOnClickListener(v -> saveBookingDetails());
-
+//        binding.btnBook.setOnClickListener(v -> saveBookingDetails());
+        binding.btnBook.setOnClickListener(v -> showPriceAdjustmentSheet());
         //Vehicle details
         if (selectedVehicle != null) {
             binding.serviceVehicleName.setText(selectedVehicle.getVehicleName());
             binding.serviceDurationDetails.setText("[" + totalDistance + " km  - " + exactTime + "]");
+            binding.minimumTimeWaiting.setText("Free Unloading time "+minimumWaitingTime+" mins");
             binding.btnBook.setText("Book " + selectedVehicle.getVehicleName());
 
             // Show/hide body type spinner based on vehicle ID
@@ -782,6 +804,217 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         txtGoodType = binding.txtGoodType;
     }
 
+    private double originalPrice = 0.0;
+    private double adjustedPrice = 0.0;
+    private BottomSheetDialog priceAdjustmentDialog;
+
+    private List<UpgradePrice> upgradePrices = new ArrayList<>();
+
+    private void showPriceAdjustmentSheet() {
+        priceAdjustmentDialog = new BottomSheetDialog(this);
+        View sheetView = getLayoutInflater().inflate(R.layout.price_adjustment_bottom_sheet, null);
+        priceAdjustmentDialog.setContentView(sheetView);
+
+        // Initialize views
+        ImageView ivClose = sheetView.findViewById(R.id.ivClose);
+        TextView tvAdjustedPrice = sheetView.findViewById(R.id.tvAdjustedPrice);
+        TextView titleText = sheetView.findViewById(R.id.ptitleTxt);
+        TextView priceText = sheetView.findViewById(R.id.ppriceText);
+        Slider priceSlider = sheetView.findViewById(R.id.priceSlider);
+        Button btnConfirmPrice = sheetView.findViewById(R.id.btnConfirmPrice);
+        LinearLayout priceRangeContainer = sheetView.findViewById(R.id.priceRangeContainer);
+
+        titleText.setText("Set Your Own Delivery Price\nfor Quick Goods Booking");
+        priceText.setText("Better offers increase your chances\nof getting a driver faster");
+        // Set initial values
+        originalPrice = finalAmount;
+        adjustedPrice = originalPrice;
+        tvAdjustedPrice.setText("₹" + (int)adjustedPrice);
+        btnConfirmPrice.setText("Book " + selectedVehicle.getVehicleName() + " for ₹" + (int)adjustedPrice);
+
+        // Fetch upgrade prices
+        fetchUpgradePrices(selectedVehicle.getVehicleId(), priceRangeContainer, priceSlider,tvAdjustedPrice,btnConfirmPrice);
+
+        // Handle close
+        ivClose.setOnClickListener(v -> {
+            adjustedPrice = originalPrice;
+            updateFareBreakdown();
+            priceAdjustmentDialog.dismiss();
+        });
+
+        // Handle confirm
+        btnConfirmPrice.setOnClickListener(v -> {
+            finalAmount = adjustedPrice;
+            updateFareBreakdown();
+            priceAdjustmentDialog.dismiss();
+            saveBookingDetails();
+        });
+
+        priceAdjustmentDialog.show();
+    }
+
+    private void fetchUpgradePrices(int vehicleId, LinearLayout container, Slider slider, TextView tvAdjustedPrice, Button btnConfirmPrice) {
+        try {
+            String customerId = preferenceManager.getStringValue("customer_id");
+            String fcmToken = preferenceManager.getStringValue("fcm_token");
+
+            JSONObject requestBody = new JSONObject();
+            requestBody.put("vehicle_id", vehicleId);
+            requestBody.put("customer_id", customerId);
+            requestBody.put("auth", fcmToken);
+
+            JsonObjectRequest request = new JsonObjectRequest(
+                    Request.Method.POST,
+                    APIClient.baseUrl + "get_vehicle_upgrade_prices",
+                    requestBody,
+                    response -> {
+                        try {
+                            // Show only base price option
+                            container.removeAllViews();
+                            container.addView(createPriceRangeView("Base", 0));
+
+                            // Hide slider by default
+                            slider.setVisibility(View.GONE);
+
+                            // Check if upgrade prices exist
+                            if (response.has("upgrade_prices")) {
+                                JSONArray upgradeArray = response.getJSONArray("upgrade_prices");
+                                if (upgradeArray.length() > 0) {
+                                    // Show slider if we have upgrade prices
+                                    slider.setVisibility(View.VISIBLE);
+                                    setupUpgradePrices(upgradeArray, container, slider, tvAdjustedPrice, btnConfirmPrice);
+                                }
+                            }
+
+                            // Initial price display
+                            adjustedPrice = originalPrice;
+                            updatePriceDisplay(tvAdjustedPrice, btnConfirmPrice, 0);
+                            highlightSelectedPriceRange(container, 0);
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            handleUpgradePricesError(container, slider, tvAdjustedPrice, btnConfirmPrice);
+                        }
+                    },
+                    error -> {
+                        if (error.networkResponse != null && error.networkResponse.statusCode == 404) {
+                            // Handle 404 - show only base price
+                            handleUpgradePricesError(container, slider, tvAdjustedPrice, btnConfirmPrice);
+                        } else {
+                            showError("Error loading price ranges");
+                        }
+                    }
+            );
+
+            VolleySingleton.getInstance(this).addToRequestQueue(request);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            handleUpgradePricesError(container, slider, tvAdjustedPrice, btnConfirmPrice);
+        }
+    }
+
+    private void handleUpgradePricesError(LinearLayout container, Slider slider, TextView tvAdjustedPrice, Button btnConfirmPrice) {
+        // Clear container and show only base price
+        container.removeAllViews();
+        container.addView(createPriceRangeView("Base", 0));
+
+        // Hide slider
+        slider.setVisibility(View.GONE);
+
+        // Set initial price display
+        adjustedPrice = originalPrice;
+        updatePriceDisplay(tvAdjustedPrice, btnConfirmPrice, 0);
+        highlightSelectedPriceRange(container, 0);
+    }
+
+    private void setupUpgradePrices(JSONArray upgradeArray, LinearLayout container, Slider slider, TextView tvAdjustedPrice, Button btnConfirmPrice) throws JSONException {
+        upgradePrices.clear();
+        List<Float> validSteps = new ArrayList<>();
+        validSteps.add(0f);
+
+        for (int i = 0; i < upgradeArray.length(); i++) {
+            JSONObject upgrade = upgradeArray.getJSONObject(i);
+            float price = (float) upgrade.getDouble("price");
+            String name = upgrade.getString("upgrade_name");
+
+            upgradePrices.add(new UpgradePrice(price, name));
+            container.addView(createPriceRangeView(name, price));
+            validSteps.add(price);
+        }
+
+        // Configure slider
+        float maxUpgrade = validSteps.get(validSteps.size() - 1);
+        slider.setValueFrom(0);
+        slider.setValueTo(maxUpgrade);
+
+        // Calculate step size based on number of valid steps
+        float stepSize = maxUpgrade / (validSteps.size() - 1);
+        slider.setStepSize(stepSize);
+
+        // Update slider listener
+        slider.addOnChangeListener((s, value, fromUser) -> {
+            float closestStep = findClosestValidStep(value, validSteps);
+            adjustedPrice = originalPrice + closestStep;
+            updatePriceDisplay(tvAdjustedPrice, btnConfirmPrice, closestStep);
+            highlightSelectedPriceRange(container, closestStep);
+        });
+    }
+    private float findClosestValidStep(float value, List<Float> validSteps) {
+        float closest = validSteps.get(0);
+        float minDiff = Math.abs(value - closest);
+
+        for (float step : validSteps) {
+            float diff = Math.abs(value - step);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = step;
+            }
+        }
+        return closest;
+    }
+
+    private void updatePriceDisplay(TextView tvAdjustedPrice, Button btnConfirmPrice, float upgrade) {
+        tvAdjustedPrice.setText(String.format("₹%d", (int)adjustedPrice));
+        String buttonText = upgrade == 0 ?
+                String.format("Book %s for ₹%d", selectedVehicle.getVehicleName(), (int)adjustedPrice) :
+                String.format("Book %s for ₹%d (+₹%d)", selectedVehicle.getVehicleName(), (int)adjustedPrice, (int)upgrade);
+        btnConfirmPrice.setText(buttonText);
+    }
+
+    private void highlightSelectedPriceRange(LinearLayout container, float selectedUpgrade) {
+        for (int i = 0; i < container.getChildCount(); i++) {
+            View child = container.getChildAt(i);
+            if (child instanceof TextView) {
+                TextView tv = (TextView) child;
+                float upgradeValue = i == 0 ? 0 : upgradePrices.get(i-1).price;
+
+                if (Math.abs(upgradeValue - selectedUpgrade) < 0.01) { // Use small epsilon for float comparison
+                    tv.setTextColor(getResources().getColor(R.color.colorPrimary));
+                    tv.setTypeface(null, Typeface.BOLD);
+                } else {
+                    tv.setTextColor(getResources().getColor(R.color.grey));
+                    tv.setTypeface(null, Typeface.NORMAL);
+                }
+            }
+        }
+    }
+
+
+    private View createPriceRangeView(String label, float price) {
+        TextView tv = new TextView(this);
+        tv.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f
+        ));
+        tv.setText(price == 0 ? "Base" : "+" + (int)price);
+        tv.setTextColor(getResources().getColor(R.color.grey));
+        tv.setGravity(Gravity.CENTER);
+        tv.setPadding(16, 8, 16, 8);
+        return tv;
+    }
+
     private void saveBookingDetails() {
 
         if (selectedVehicle == null) {
@@ -797,6 +1030,7 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         try {
             cityId = preferenceManager.getStringValue("city_id");
             String customerId = preferenceManager.getStringValue("customer_id");
+            String fcmToken = preferenceManager.getStringValue("fcm_token");
             String url = APIClient.baseUrl + "generate_new_goods_drivers_booking_id_get_nearby_drivers_with_fcm_token";
 
 
@@ -819,6 +1053,12 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
             if (totalDistance > selectedVehicle.getOutStationDistance()) {
                 priceTypeId = "2";
             }
+            System.out.println("totalPrice before hike price::"+pricePerKm);
+            if(adjustedPrice>0){
+                adjustedPrice-=pricePerKm;
+            }
+            pricePerKm+=adjustedPrice;
+            System.out.println("adjustedPrice::"+adjustedPrice);
             // Create JSON body
             JSONObject jsonBody = new JSONObject();
             try {
@@ -851,6 +1091,7 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
                 jsonBody.put("coupon_id", couponId);
                 jsonBody.put("coupon_amount", couponDiscountAmount);
                 jsonBody.put("before_coupon_amount", beforeCouponAmount);
+                jsonBody.put("hike_price", adjustedPrice);
 
 
                 jsonBody.put("is_scheduled", isScheduledBooking);
@@ -865,6 +1106,7 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
                 jsonBody.put("drop_locations", dropLocationsArray);
                 jsonBody.put("drop_contacts", dropContactsArray);
                 jsonBody.put("multiple_drops", multipleDrops);
+                jsonBody.put("auth", fcmToken);
 
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -891,6 +1133,14 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
                                     bookingId = results.getJSONObject(0).getString("cab_booking_id");
                                 } else {
                                     bookingId = results.getJSONObject(0).getString("booking_id");
+                                }
+
+
+                                if(adjustedPrice>0){
+                                    finalAmount-=adjustedPrice;
+                                    binding.finalAmount.setText(String.format("₹%d", (int)finalAmount));
+                                    binding.bottomTotalAmount.setText(String.format("₹%d", (int)finalAmount));
+                                    adjustedPrice=0;
                                 }
 
                                 if (!isScheduledBooking) {
@@ -1032,17 +1282,17 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
                                     System.out.println("formattedPrice::" + formattedPrice);
                                     double roundedPrice = Double.parseDouble(formattedPrice);
                                     System.out.println("roundedPrice::" + roundedPrice);
-                                    VehicleModel vehicle = new VehicleModel(
-                                            vehicleId,
-                                            vehicleObject.getString("vehicle_name"),
-                                            vehicleObject.getString("image"),
-                                            vehicleObject.getDouble("base_fare"),
-                                            roundedPrice,
-                                            vehicleObject.getString("size_image"),
-                                            vehicleObject.getString("weight"),
-                                            vehicleObject.getInt("outstation_distance")
-                                    );
-                                    vehiclesList.add(vehicle);
+//                                    VehicleModel vehicle = new VehicleModel(
+//                                            vehicleId,
+//                                            vehicleObject.getString("vehicle_name"),
+//                                            vehicleObject.getString("image"),
+//                                            vehicleObject.getDouble("base_fare"),
+//                                            roundedPrice,
+//                                            vehicleObject.getString("size_image"),
+//                                            vehicleObject.getString("weight"),
+//                                            vehicleObject.getInt("outstation_distance")
+//                                    );
+//                                    vehiclesList.add(vehicle);
                                 }
 
                                 if (vehiclesList.isEmpty()) {

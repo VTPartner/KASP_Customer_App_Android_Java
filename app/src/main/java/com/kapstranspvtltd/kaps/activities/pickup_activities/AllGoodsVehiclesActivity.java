@@ -155,12 +155,18 @@ public class AllGoodsVehiclesActivity extends AppCompatActivity implements Goods
                     finish();
                     return;
                 }
+                String customerId = preferenceManager.getStringValue("customer_id");
+                String fcmToken = preferenceManager.getStringValue("fcm_token");
 
                 String url = APIClient.baseUrl + "all_vehicles_with_price_details";
                 JSONObject jsonBody = new JSONObject();
                 jsonBody.put("category_id", cabService ? 2 : 1);
                 jsonBody.put("price_type_id", priceTypeId);
                 jsonBody.put("city_id", cityId);
+                jsonBody.put("customer_id", customerId);
+                jsonBody.put("auth", fcmToken);
+
+
 
                 JsonObjectRequest request = new JsonObjectRequest(
                         Request.Method.POST,
@@ -198,7 +204,8 @@ public class AllGoodsVehiclesActivity extends AppCompatActivity implements Goods
                                             roundedPrice,
                                             vehicleObject.getString("size_image"),
                                             vehicleObject.getString("weight"),
-                                            vehicleObject.getInt("outstation_distance")
+                                            vehicleObject.getInt("outstation_distance"),
+                                            vehicleObject.getInt("minimum_waiting_time")
                                     );
                                     vehiclesList.add(vehicle);
                                 }
@@ -242,9 +249,16 @@ public class AllGoodsVehiclesActivity extends AppCompatActivity implements Goods
 
     private void fetchPeakHourPrices(String cityId, Runnable onComplete) {
         try {
+            String customerId = preferenceManager.getStringValue("customer_id");
+            String fcmToken = preferenceManager.getStringValue("fcm_token");
+
+
             String url = APIClient.baseUrl + "get_peak_hour_prices";
             JSONObject jsonBody = new JSONObject();
+
             jsonBody.put("city_id", cityId);
+            jsonBody.put("customer_id", customerId);
+            jsonBody.put("auth", fcmToken);
 
             JsonObjectRequest request = new JsonObjectRequest(
                     Request.Method.POST,
@@ -419,6 +433,7 @@ public class AllGoodsVehiclesActivity extends AppCompatActivity implements Goods
                 .putExtra("vehicle_name",vehicle.getVehicleName())
                 .putExtra("vehicle_base_price",vehicle.getBaseFare())
                 .putExtra("vehicle_per_km_price",vehicle.getPricePerKm())
+                .putExtra("vehicle_minimum_waiting_time",vehicle.getMinimumWaitingTime())
         );
     }
 

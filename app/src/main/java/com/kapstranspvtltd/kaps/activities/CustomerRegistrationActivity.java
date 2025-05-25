@@ -108,8 +108,11 @@ public class CustomerRegistrationActivity extends BaseActivity {
         locationHelper.getCurrentLocation(new LocationHelper.LocationCallbackListener() {
             @Override
             public void onSuccess(LocationHelper.LocationDetails locationDetails) {
+                String customerId = preferenceManager.getStringValue("customer_id");
+                String fcmToken = preferenceManager.getStringValue("fcm_token");
+
                 Map<String, String> params = new HashMap<>();
-                params.put("customer_id", preferenceManager.getStringValue("customer_id"));
+                params.put("customer_id", customerId);
                 params.put("full_address", locationDetails.getAddress());
                 params.put("customer_name", fullName);
                 params.put("email", email);
@@ -117,6 +120,7 @@ public class CustomerRegistrationActivity extends BaseActivity {
                 params.put("pincode", locationDetails.getPostalCode());
                 params.put("r_lat", String.valueOf(locationDetails.getLatitude()));
                 params.put("r_lng", String.valueOf(locationDetails.getLongitude()));
+                params.put("auth", fcmToken);
 
                 JsonObjectRequest request = new JsonObjectRequest(
                         Request.Method.POST,

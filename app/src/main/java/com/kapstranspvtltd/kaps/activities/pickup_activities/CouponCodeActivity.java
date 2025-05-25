@@ -22,6 +22,7 @@ import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.adapters.CouponAdapter;
 import com.kapstranspvtltd.kaps.model.Coupon;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
+import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -33,6 +34,7 @@ import java.util.List;
 public class CouponCodeActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
+    PreferenceManager preferenceManager;
 
     private boolean isCouponApplied = false;
     private CouponAdapter couponAdapter;
@@ -48,7 +50,7 @@ public class CouponCodeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_coupon_code);
-
+        preferenceManager = new PreferenceManager(this);
         // Initialize views
         recyclerView = findViewById(R.id.recycler_view);
         shimmerLayout = findViewById(R.id.shimmerLayout);
@@ -90,10 +92,14 @@ public class CouponCodeActivity extends AppCompatActivity {
 
     private void fetchCoupons() {
         String url = APIClient.baseUrl + "all_coupons";
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
 
         JSONObject postData = new JSONObject();
         try {
             postData.put("category_id", categoryId);
+            postData.put("customer_id", customerId);
+            postData.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }

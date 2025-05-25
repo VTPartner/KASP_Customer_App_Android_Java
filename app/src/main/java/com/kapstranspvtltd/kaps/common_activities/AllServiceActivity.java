@@ -19,6 +19,7 @@ import com.kapstranspvtltd.kaps.common_activities.adapters.ServiceAdapter;
 import com.kapstranspvtltd.kaps.common_activities.models.Service;
 import com.kapstranspvtltd.kaps.databinding.ActivityAllServiceBinding;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
+import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 
 
 import org.json.JSONArray;
@@ -38,6 +39,8 @@ public class AllServiceActivity extends BaseActivity implements ServiceAdapter.O
     private List<Service> serviceList;
     private RequestQueue requestQueue;
 
+    PreferenceManager preferenceManager;
+
     Service serviceSelected;
 
     int categoryId;
@@ -49,6 +52,8 @@ public class AllServiceActivity extends BaseActivity implements ServiceAdapter.O
         super.onCreate(savedInstanceState);
         binding = ActivityAllServiceBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        preferenceManager = new PreferenceManager(this);
         categoryId = getIntent().getIntExtra("category_id", -1);
         categoryName = getIntent().getStringExtra("category_name");
 
@@ -113,9 +118,14 @@ public class AllServiceActivity extends BaseActivity implements ServiceAdapter.O
     private void fetchServices() {
         showLoading(true);
 
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
         String url = APIClient.baseUrl + "get_all_sub_categories";
-        Map<String, Integer> params = new HashMap<>();
+        Map<String, Object> params = new HashMap<>();
         params.put("cat_id", categoryId);
+        params.put("customer_id", customerId);
+        params.put("auth", fcmToken);
 
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url,
                 new JSONObject(params),

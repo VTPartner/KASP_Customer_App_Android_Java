@@ -114,7 +114,7 @@ public class MyApplication extends Application {
                     public Map<String, String> getHeaders() {
                         Map<String, String> headers = new HashMap<>();
                         headers.put("Content-Type", "application/json");
-                        headers.put("Authorization", "Bearer " + serverToken);
+//                        headers.put("Authorization", "Bearer " + serverToken);
                         return headers;
                     }
                 };

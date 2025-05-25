@@ -10,19 +10,20 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.kapstranspvtltd.kaps.R;
+import com.kapstranspvtltd.kaps.activities.models.CancelReason;
 
 import java.util.List;
 
 public class CancelReasonAdapter extends RecyclerView.Adapter<CancelReasonAdapter.ViewHolder> {
-    private List<String> reasons;
-    private String selectedReason = "";
+    private List<CancelReason> reasons;
+    private CancelReason selectedReason = null;
     private OnReasonSelectedListener listener;
 
     public interface OnReasonSelectedListener {
-        void onReasonSelected(String reason);
+        void onReasonSelected(CancelReason reason);
     }
 
-    public CancelReasonAdapter(List<String> reasons, OnReasonSelectedListener listener) {
+    public CancelReasonAdapter(List<CancelReason> reasons, OnReasonSelectedListener listener) {
         this.reasons = reasons;
         this.listener = listener;
     }
@@ -37,8 +38,8 @@ public class CancelReasonAdapter extends RecyclerView.Adapter<CancelReasonAdapte
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        String reason = reasons.get(position);
-        holder.reasonText.setText(reason);
+        CancelReason reason = reasons.get(position);
+        holder.reasonText.setText(reason.getReason());
 
         boolean isSelected = reason.equals(selectedReason);
         holder.itemView.setSelected(isSelected);

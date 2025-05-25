@@ -35,6 +35,7 @@ import com.bumptech.glide.Glide;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.firebase.messaging.FirebaseMessaging;
 import com.kapstranspvtltd.kaps.activities.OngoingGoodsDetailActivity;
 import com.kapstranspvtltd.kaps.activities.models.AllServicesHome;
 import com.kapstranspvtltd.kaps.activities.models.SliderModel;
@@ -44,6 +45,7 @@ import com.kapstranspvtltd.kaps.adapters.OfferSliderAdapter;
 import com.kapstranspvtltd.kaps.adapters.ServiceAdapter;
 import com.kapstranspvtltd.kaps.cab_customer_app.activities.CabBookingPickupLocationActivity;
 import com.kapstranspvtltd.kaps.common_activities.AllServiceActivity;
+import com.kapstranspvtltd.kaps.fcm.AccessToken;
 import com.kapstranspvtltd.kaps.network.VolleySingleton;
 import com.kapstranspvtltd.kaps.polygon.Polygon;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
@@ -66,6 +68,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class HomeSelectFragment extends Fragment {
 
@@ -92,6 +96,8 @@ public class HomeSelectFragment extends Fragment {
 
     PreferenceManager preferenceManager;
 
+    private ExecutorService executorService;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -101,13 +107,14 @@ public class HomeSelectFragment extends Fragment {
         preferenceManager = new PreferenceManager(this.getContext());
         homeSelectFragment = this;
         custPrograssbar = new CustPrograssbar();
-
+        executorService = Executors.newSingleThreadExecutor();
 
         getLocation();
         getZone();
         setupRecyclerViews();
-        fetchServices();
-        setupOffers();
+        getFCMToken();
+//        fetchServices();
+//        setupOffers();
 
         boolean liveRide = preferenceManager.getBooleanValue("live_ride");
         String currentBookingId = preferenceManager.getStringValue("current_booking_id");
@@ -136,6 +143,78 @@ public class HomeSelectFragment extends Fragment {
         return view;
     }
 
+    private void getFCMToken() {
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful()) {
+                        Log.w("FCM", "Fetching FCM registration token failed", task.getException());
+                        return;
+                    }
+
+                    // Get new FCM registration token
+                    String token = task.getResult();
+
+                    // Save token locally
+                    preferenceManager.saveStringValue("fcm_token",token);
+
+                    // Upload token to server
+                    updateAuthToken(token);
+                });
+    }
+
+    private void updateAuthToken(String deviceToken) {
+        Log.d("FCMToken", "Updating FCM token");
+
+        String customerId = preferenceManager.getStringValue("customer_id");
+        if (customerId.isEmpty() || deviceToken == null || deviceToken.isEmpty()) {
+            return;
+        }
+
+        executorService.execute(() -> {
+            try {
+                String serverToken = AccessToken.getAccessToken();
+                System.out.println("serverToken::"+serverToken);
+                String url = APIClient.baseUrl + "update_firebase_customer_token";
+                System.out.println("deviceToken::"+deviceToken);
+                JSONObject jsonBody = new JSONObject();
+                jsonBody.put("customer_id", customerId);
+                jsonBody.put("authToken", deviceToken);
+
+                JsonObjectRequest request = new JsonObjectRequest(
+                        Request.Method.POST,
+                        url,
+                        jsonBody,
+                        response -> {
+                            String message = response.optString("message");
+                            Log.d("Auth", "Token update response: " + message);
+                                    fetchServices();
+        setupOffers();
+                        },
+                        error -> {
+                            Log.e("Auth", "Error updating token: " + error.getMessage());
+                            error.printStackTrace();
+                        }
+                ) {
+                    @Override
+                    public Map<String, String> getHeaders() {
+                        Map<String, String> headers = new HashMap<>();
+                        headers.put("Content-Type", "application/json");
+//                        headers.put("Authorization", "Bearer " + serverToken);
+                        return headers;
+                    }
+                };
+
+                VolleySingleton.getInstance(this.getContext()).addToRequestQueue(request);
+
+            } catch (Exception e) {
+                Log.e("Auth", "Error in token update process: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+
+
+
     private void setupOffers() {
 //        List<SliderModel> dummyOffers = Arrays.asList(
 //                new SliderModel("https://nesscampbell.com/wp-content/uploads/NessCampbellCraneRigging-seotool-19517-WhatAreThe-Blogbanner1-2.jpg"),
@@ -144,10 +223,18 @@ public class HomeSelectFragment extends Fragment {
 //                new SliderModel("https://img.freepik.com/premium-vector/delivery-service-ads-promotional-web-banner-template-design_1033790-8771.jpg")
 //        );
 //        offerAdapter.setOffers(dummyOffers);
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
+        Map<String, String> params = new HashMap<>();
+        params.put("customer_id", customerId);
+        params.put("auth", fcmToken);
+
         JSONObject jsonBody = new JSONObject();
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST,
+        JsonObjectRequest request = new JsonObjectRequest(
+                Request.Method.POST,
                 APIClient.baseUrl + "get_all_banners",
-                jsonBody,
+                new JSONObject(params),
                 response -> {
 
                     try {
@@ -450,10 +537,16 @@ public class HomeSelectFragment extends Fragment {
 
         String url = APIClient.baseUrl + "all_services";
 
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
+        Map<String, String> params = new HashMap<>();
+        params.put("customer_id", customerId);
+        params.put("auth", fcmToken);
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.POST,
                 url,
-                null,
+                new JSONObject(params),
                 response -> {
                     try {
                         hideLoading();
@@ -589,8 +682,8 @@ public class HomeSelectFragment extends Fragment {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        binding.txtAddress.setText(addressText);
+        if(binding.txtAddress !=null && !addressText.isEmpty())
+            binding.txtAddress.setText(addressText);
     }
 
     private void getZone() {

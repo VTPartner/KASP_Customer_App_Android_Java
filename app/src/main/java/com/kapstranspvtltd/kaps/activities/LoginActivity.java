@@ -67,27 +67,60 @@ public class LoginActivity extends AppCompatActivity {
 
     private void setupMobileValidation() {
         binding.edMobile.addTextChangedListener(new TextWatcher() {
+            private boolean isProcessing = false;
+
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Skip if we're already processing to avoid recursion
+                if (isProcessing) return;
+
+                // Handle pasted text
+                if (count > 1) {
+                    isProcessing = true;
+                    String input = s.toString();
+
+                    // Remove common country code prefixes
+                    input = input.replaceAll("^\\+?91|^0091|^91", "");
+
+                    // Remove any non-digit characters
+                    input = input.replaceAll("[^0-9]", "");
+
+                    // Take last 10 digits if longer
+                    if (input.length() > 10) {
+                        input = input.substring(input.length() - 10);
+                    }
+
+                    // Update text field
+                    binding.edMobile.setText(input);
+                    binding.edMobile.setSelection(input.length());
+
+                    isProcessing = false;
+                    return;
+                }
+            }
 
             @Override
             public void afterTextChanged(Editable s) {
-                // Remove any non-digit characters
+                if (isProcessing) return;
+
+                isProcessing = true;
+
+                // Handle single character input
                 String filtered = s.toString().replaceAll("[^0-9]", "");
+
+                if (filtered.length() > 10) {
+                    filtered = filtered.substring(0, 10);
+                }
+
                 if (!filtered.equals(s.toString())) {
                     binding.edMobile.setText(filtered);
                     binding.edMobile.setSelection(filtered.length());
                 }
 
-                // Limit to 10 digits
-                if (filtered.length() > 10) {
-                    filtered = filtered.substring(0, 10);
-                    binding.edMobile.setText(filtered);
-                    binding.edMobile.setSelection(filtered.length());
-                }
+                isProcessing = false;
             }
         });
     }

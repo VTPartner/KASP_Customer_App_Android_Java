@@ -179,6 +179,7 @@ public class WalletActivity extends AppCompatActivity implements PaymentResultLi
     private void updateWalletBalance(String razorpayPaymentId, double amount) {
         showLoading(true);
         String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
 
         JSONObject params = new JSONObject();
         try {
@@ -186,6 +187,7 @@ public class WalletActivity extends AppCompatActivity implements PaymentResultLi
             params.put("razorpay_payment_id", razorpayPaymentId);
             params.put("amount", amount);
             params.put("payment_mode", "Razorpay");
+            params.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -237,15 +239,16 @@ public class WalletActivity extends AppCompatActivity implements PaymentResultLi
     private void fetchWalletDetails() {
         showLoading(true);
         String customerId = preferenceManager.getStringValue("customer_id");
-
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
         JSONObject params = new JSONObject();
         try {
             params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
-        // Fix the URL - make sure it matches your API endpoint exactly
+
         String url = APIClient.baseUrl + "customer_wallet_details";
 
         JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST,

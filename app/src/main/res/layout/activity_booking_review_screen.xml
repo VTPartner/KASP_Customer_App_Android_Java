@@ -85,8 +85,8 @@
 
                         <ImageView
                             android:id="@+id/vehicleImg"
-                            android:layout_width="50dp"
-                            android:layout_height="50dp"
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
                             android:src="@drawable/ic_image_placeholder"
                             />
 
@@ -105,6 +105,14 @@
 
                             <TextView
                                 android:id="@+id/serviceDurationDetails"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/grey"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:id="@+id/minimumTimeWaiting"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="4dp"

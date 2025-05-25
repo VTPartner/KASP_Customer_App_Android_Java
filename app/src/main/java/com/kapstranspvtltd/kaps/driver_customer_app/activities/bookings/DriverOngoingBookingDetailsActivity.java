@@ -4,6 +4,7 @@ import static android.content.ContentValues.TAG;
 
 import static com.kapstranspvtltd.kaps.retrofit.APIClient.resizeBitmap;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
@@ -65,10 +66,19 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.maps.DirectionsApi;
+import com.google.maps.DirectionsApiRequest;
+import com.google.maps.GeoApiContext;
+import com.google.maps.PendingResult;
+import com.google.maps.model.DirectionsResult;
+import com.google.maps.model.DirectionsRoute;
+import com.google.maps.model.TravelMode;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.activities.HomeActivity;
 import com.kapstranspvtltd.kaps.activities.OngoingGoodsDetailActivity;
 
+import com.kapstranspvtltd.kaps.activities.models.CancelReason;
+import com.kapstranspvtltd.kaps.activities.pickup_activities.EditDropLocationActivity;
 import com.kapstranspvtltd.kaps.adapters.CancelReasonAdapter;
 import com.kapstranspvtltd.kaps.databinding.ActivityDriverOngoingBookingBinding;
 import com.kapstranspvtltd.kaps.databinding.ActivityOngoingGoodsDetailBinding;
@@ -129,8 +139,11 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
         super.onCreate(savedInstanceState);
         binding = ActivityDriverOngoingBookingBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab);
+        Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab_new);
         Bitmap smallMarker = resizeBitmap(original, 100, 100); // Resize to 100x100
+
+        initGeoApiContext();
+
         driverIcon = BitmapDescriptorFactory.fromBitmap(smallMarker);
         custPrograssbar = new CustPrograssbar();
 
@@ -152,6 +165,22 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
         binding.imgCall.setOnClickListener(v -> handleCallClick());
         binding.btnCancel.setOnClickListener(v -> showCancelBookingBottomSheet() );
         binding.imgCallSos.setOnClickListener(v -> callEmergencyNumber());
+        binding.imgShare.setOnClickListener(v -> {
+
+            String url = "https://kaps9.in/driver-booking-details/" + bookingId;
+
+            String message = "🚚 Your KAPS booking is confirmed!\n\n"
+                    + "📦 View your booking details here:\n"
+                    + url + "\n\n"
+                    + "Thank you for choosing KAPS – Reliable. Fast. Affordable.";
+
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.setType("text/plain");
+            shareIntent.putExtra(Intent.EXTRA_SUBJECT, "KAPS Booking Confirmation");
+            shareIntent.putExtra(Intent.EXTRA_TEXT, message);
+
+            v.getContext().startActivity(Intent.createChooser(shareIntent, "Share your KAPS booking via"));
+        });
 
     }
 
@@ -180,49 +209,111 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
         // Set driver details
         Glide.with(this)
                 .load(bookingDetails.getDriverImage())
-                .placeholder(R.drawable.ic_image_placeholder)
+                .placeholder(R.drawable.placeholder)
+                .error(R.drawable.placeholder)
                 .override(100, 100)
                 .into(driverImage);
 
         driverName.setText(bookingDetails.getDriverName());
         cancelText.setText("You are about to cancel the booking which was assigned to " + bookingDetails.getDriverName());
 
-        // Setup reasons list
-        List<String> cancelReasons = Arrays.asList(
-                "Driver delayed pickup",
-                "Wrong vehicle assigned",
-                "Driver unreachable",
-                "Change of plans",
-                "Other reasons"
+        // Fetch cancel reasons from API
+        fetchCancelReasons(reasonsRecyclerView, otherReasonLayout, otherReasonInput, submitButton, bottomSheetDialog);
+
+        bottomSheetDialog.show();
+    }
+
+    private void fetchCancelReasons(RecyclerView recyclerView, TextInputLayout otherReasonLayout,
+                                    TextInputEditText otherReasonInput, Button submitButton,
+                                    BottomSheetDialog dialog) {
+
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+        JSONObject params = new JSONObject();
+        try {
+            params.put("category_id", 4);
+            params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        JsonObjectRequest request = new JsonObjectRequest(
+                Request.Method.POST,
+                APIClient.baseUrl + "get_category_cancel_reasons",
+                params,
+                response -> {
+                    try {
+                        JSONArray reasonsArray = response.getJSONArray("reasons");
+                        List<CancelReason> cancelReasons = new ArrayList<>();
+
+                        for (int i = 0; i < reasonsArray.length(); i++) {
+                            JSONObject reasonObj = reasonsArray.getJSONObject(i);
+                            cancelReasons.add(new CancelReason(
+                                    reasonObj.getInt("reason_id"),
+                                    reasonObj.getString("reason")
+                            ));
+                        }
+
+                        // Add "Other reasons" option
+                        cancelReasons.add(new CancelReason(-1, "Other reasons"));
+
+                        setupCancelReasonAdapter(cancelReasons, recyclerView, otherReasonLayout,
+                                otherReasonInput, submitButton, dialog);
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        showError("Error loading cancel reasons");
+                    }
+                },
+                error -> {
+                    error.printStackTrace();
+                    showError("Failed to load cancel reasons");
+                }
         );
 
-        final String[] selectedReason = {""};
+        VolleySingleton.getInstance(this).addToRequestQueue(request);
+    }
 
-        CancelReasonAdapter adapter = new CancelReasonAdapter(cancelReasons, reason -> {
+    private void setupCancelReasonAdapter(List<CancelReason> reasons, RecyclerView recyclerView,
+                                          TextInputLayout otherReasonLayout, TextInputEditText otherReasonInput,
+                                          Button submitButton, BottomSheetDialog dialog) {
+
+        final CancelReason[] selectedReason = {null};
+
+        CancelReasonAdapter adapter = new CancelReasonAdapter(reasons, reason -> {
             selectedReason[0] = reason;
             submitButton.setEnabled(true);
 
             // Show/hide other reason input
-            if (reason.equals("Other reasons")) {
+            if (reason.getReason().equals("Other reasons")) {
                 otherReasonLayout.setVisibility(View.VISIBLE);
             } else {
                 otherReasonLayout.setVisibility(View.GONE);
             }
         });
 
-        reasonsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        reasonsRecyclerView.setAdapter(adapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(adapter);
 
         // Handle submit button
         submitButton.setOnClickListener(v -> {
-            String finalReason = selectedReason[0];
-            if (finalReason.equals("Other reasons")) {
+            if (selectedReason[0] == null) {
+                showError("Please select a reason");
+                return;
+            }
+
+            String finalReason;
+            if (selectedReason[0].getReason().equals("Other reasons")) {
                 String otherReason = otherReasonInput.getText().toString();
                 if (otherReason.isEmpty()) {
                     otherReasonInput.setError("Please enter a reason");
                     return;
                 }
                 finalReason = otherReason;
+            } else {
+                finalReason = selectedReason[0].getReason();
             }
 
             // Show loading
@@ -230,30 +321,28 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
             progressDialog.setMessage("Cancelling booking...");
             progressDialog.show();
 
-            // Make API call
             cancelBooking(finalReason, new CancelBookingCallback() {
                 @Override
                 public void onSuccess() {
                     progressDialog.dismiss();
-                    bottomSheetDialog.dismiss();
-                    // Handle success (navigate back, show toast, etc.)
+                    dialog.dismiss();
                 }
 
                 @Override
                 public void onError(String error) {
                     progressDialog.dismiss();
-                    Toast.makeText(DriverOngoingBookingDetailsActivity.this, error, Toast.LENGTH_SHORT).show();
+                    showError(error);
                 }
             });
         });
-
-        bottomSheetDialog.show();
     }
 
     private void cancelBooking(String reason, CancelBookingCallback callback) {
         String url =  APIClient.baseUrl +"cancel_other_driver_booking";
         String agentAccessToken = AccessToken.getAccessToken();
         String customerAccessToken = AccessToken.getCustomerAccessToken();
+
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
 
 
         JSONObject params = new JSONObject();
@@ -265,6 +354,7 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
             params.put("driver_id", bookingDetails.getDriverId());
             params.put("pickup_address", bookingDetails.getPickupAddress());
             params.put("cancel_reason", reason);
+            params.put("auth", fcmToken);
 
             JsonObjectRequest request = new JsonObjectRequest(
                     Request.Method.POST,
@@ -449,10 +539,14 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
     private void fetchBookingDetails() {
         showLoading(true);
 
+
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
         JSONObject params = new JSONObject();
         try {
             params.put("booking_id", bookingId);
             params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -535,7 +629,7 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
         details.setBookingTiming(result.optString("booking_timing"));
         details.setPaymentMethod(result.optString("payment_method"));
         details.setBookingStatus(result.optString("booking_status"));
-
+        details.setBasePrice(result.optDouble("base_price"));
         details.setDriverImage(result.optString("profile_pic"));
         details.setTotalPrice(result.optString("total_price"));
         details.setOtp(result.optString("otp"));
@@ -569,6 +663,17 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
 
         // Update toolbar
         binding.toolbarTitle.setText("Booking #" + bookingId);
+        if(bookingDetails.getDistance()!=null)
+            binding.totaldistance.setText("Distance: "+bookingDetails.getDistance()+"km");
+
+        String bookingStatus1 = bookingDetails.getBookingStatus();
+        boolean isCancelled = bookingStatus1.equalsIgnoreCase("Cancelled");
+
+        if (!isCancelled) {
+            binding.btnEditDropLocation.setVisibility(View.VISIBLE);
+        } else {
+            binding.btnEditDropLocation.setVisibility(View.GONE);
+        }
 
         // Update date and booking ID
         binding.txtDate.setText(bookingDetails.getFormattedBookingTiming());
@@ -694,9 +799,14 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
             return;
         }
 
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
         JSONObject params = new JSONObject();
         try {
             params.put("driver_id", bookingDetails.getDriverId());
+            params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
         } catch (JSONException e) {
             e.printStackTrace();
             return;
@@ -1144,5 +1254,174 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
         else custPrograssbar.closePrograssBar();
     }
 
+
+    /**
+     * Edit Drop location implementation
+     */
+
+    private static final int EDIT_LOCATION_REQUEST_CODE = 1001;
+
+    private void showEditDropLocationBottomSheet() {
+        // Show confirmation dialog first
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_confirm_edit_location, null);
+        AlertDialog confirmDialog = builder.setView(dialogView).create();
+
+        dialogView.findViewById(R.id.btn_cancel).setOnClickListener(v -> confirmDialog.dismiss());
+        dialogView.findViewById(R.id.btn_confirm).setOnClickListener(v -> {
+            confirmDialog.dismiss();
+            launchEditLocationActivity();
+        });
+
+        confirmDialog.show();
+    }
+
+    private void launchEditLocationActivity() {
+        Intent intent = new Intent(this, EditDropLocationActivity.class);
+        intent.putExtra("current_lat", bookingDetails.getDropLat());
+        intent.putExtra("current_lng", bookingDetails.getDropLng());
+        intent.putExtra("current_address", bookingDetails.getDropAddress());
+        startActivityForResult(intent, EDIT_LOCATION_REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == EDIT_LOCATION_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+            double newLat = data.getDoubleExtra("new_lat", 0);
+            double newLng = data.getDoubleExtra("new_lng", 0);
+            String newAddress = data.getStringExtra("new_address");
+            System.out.println("newAddress::"+newAddress);
+            updateDropLocation(newLat, newLng, newAddress, this::fetchBookingDetails);
+        }
+    }
+
+
+    private GeoApiContext geoApiContext;
+    private double totalDistance = 0;
+    private double totalDuration = 0;
+    private double totalDistanceValue = 0;
+    private double totalDurationValue = 0;
+
+    // Initialize this in onCreate
+    private void initGeoApiContext() {
+        geoApiContext = new GeoApiContext.Builder()
+                .apiKey(getString(R.string.google_maps_key))
+                .build();
+    }
+
+    private double calculateNewTotalPrice(double currentDistance, double totalDistanceBeforeEdit,
+                                          double totalPriceBeforeEdit, double basePrice) {
+        // Calculate price per km from original booking
+        double pricePerKm = totalPriceBeforeEdit / totalDistanceBeforeEdit;
+
+        // Calculate new total price based on new distance
+        double newTotalPrice = currentDistance * pricePerKm;
+
+        // Ensure new price doesn't go below base price
+        return Math.max(newTotalPrice, basePrice);
+    }
+
+    private void updateDropLocation(double lat, double lng, String address, Runnable onSuccess) {
+        custPrograssbar.prograssCreate(this);
+
+        // Get existing values
+        double totalPriceBeforeEdit = Double.parseDouble(bookingDetails.getTotalPrice());
+        double basePrice = bookingDetails.getBasePrice();
+        double totalDistanceBeforeEdit = Double.parseDouble(bookingDetails.getDistance());
+
+        // Calculate new price based on current distance
+        DirectionsApiRequest request = DirectionsApi.newRequest(geoApiContext)
+                .origin(new com.google.maps.model.LatLng(bookingDetails.getPickupLat(),
+                        bookingDetails.getPickupLng()))
+                .destination(new com.google.maps.model.LatLng(lat, lng))
+                .mode(TravelMode.DRIVING);
+
+        request.setCallback(new PendingResult.Callback<DirectionsResult>() {
+            @Override
+            public void onResult(DirectionsResult result) {
+                if (result.routes != null && result.routes.length > 0) {
+                    DirectionsRoute route = result.routes[0];
+
+                    // Get current distance in km
+                    double currentDistance = route.legs[0].distance.inMeters / 1000.0;
+                    String time = route.legs[0].duration.humanReadable;
+
+                    // Calculate new total price
+                    double newTotalPrice = calculateNewTotalPrice(
+                            currentDistance,
+                            totalDistanceBeforeEdit,
+                            totalPriceBeforeEdit,
+                            basePrice
+                    );
+
+                    // Update server with new values
+                    updateLocationOnServer(lat, lng, address, currentDistance, time, newTotalPrice, onSuccess);
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                runOnUiThread(() -> {
+                    custPrograssbar.closePrograssBar();
+                    showError("Failed to calculate distance");
+                });
+            }
+        });
+    }
+
+    private void updateLocationOnServer(double lat, double lng, String address,
+                                        double distance, String time, double newTotalPrice,
+                                        Runnable onSuccess) {
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
+        JSONObject params = new JSONObject();
+        try {
+            params.put("booking_id", bookingId);
+            params.put("customer_id", customerId);
+            params.put("driver_id", bookingDetails.getDriverId());
+            params.put("drop_lat", lat);
+            params.put("drop_lng", lng);
+            params.put("drop_address", address);
+            params.put("destination_lat", lat);
+            params.put("destination_lng", lng);
+            params.put("distance", distance);
+            params.put("time", time);
+            params.put("total_price", newTotalPrice);
+            params.put("auth", fcmToken);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            custPrograssbar.closePrograssBar();
+            return;
+        }
+
+        JsonObjectRequest request = new JsonObjectRequest(
+                Request.Method.POST,
+                APIClient.baseUrl + "edit_other_driver_drop_location",
+                params,
+                response -> {
+                    custPrograssbar.closePrograssBar();
+                    showError("Drop location updated successfully");
+                    if (onSuccess != null) onSuccess.run();
+                },
+                error -> {
+                    custPrograssbar.closePrograssBar();
+                    handleError(error);
+                }
+        );
+
+        VolleySingleton.getInstance(this).addToRequestQueue(request);
+    }
+
+    private String formatDuration(double minutes) {
+        long hours = (long) (minutes / 60);
+        long mins = (long) (minutes % 60);
+
+        if (hours > 0) {
+            return String.format("%dh %dm", hours, mins);
+        } else {
+            return String.format("%dm", mins);
+        }
+    }
 
 }
