@@ -12,19 +12,31 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Interpolator;
+import android.view.animation.LinearInterpolator;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.volley.Request;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -33,6 +45,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -45,6 +58,8 @@ import com.google.maps.model.DirectionsRoute;
 import com.google.maps.model.TravelMode;
 import com.kapstranspvtltd.kaps.activities.BaseActivity;
 import com.kapstranspvtltd.kaps.common_activities.Glb;
+import com.kapstranspvtltd.kaps.network.VolleySingleton;
+import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.Drop;
 import com.kapstranspvtltd.kaps.utility.Pickup;
 import com.kapstranspvtltd.kaps.R;
@@ -52,8 +67,17 @@ import com.kapstranspvtltd.kaps.databinding.ActivityReviewMapBinding;
 import com.kapstranspvtltd.kaps.databinding.ItemDropBinding;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -84,6 +108,170 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
 
     PreferenceManager preferenceManager;
 
+    private Map<String, Marker> driverMarkers = new HashMap<>();
+    private Handler markerUpdateHandler = new Handler(Looper.getMainLooper());
+    private static final int MARKER_UPDATE_INTERVAL = 5000; // 5 seconds
+    private boolean isTrackingDrivers = true;
+
+    private boolean isPaused = false;
+
+    private void startTrackingDrivers() {
+        isTrackingDrivers = true;
+        isPaused = false;
+
+        markerUpdateHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (isTrackingDrivers && !isPaused) {
+                    fetchNearbyDrivers();
+                    markerUpdateHandler.postDelayed(this, MARKER_UPDATE_INTERVAL);
+                }
+            }
+        }, MARKER_UPDATE_INTERVAL);
+    }
+
+    private void fetchNearbyDrivers() {
+        // Create JSON parameters
+        JSONObject params = new JSONObject();
+        try {
+            params.put("lat", pickup.getLat());
+            params.put("lng", pickup.getLog());
+            params.put("city_id", preferenceManager.getStringValue("city_id"));
+            params.put("price_type", 1);
+            params.put("radius_km", 5);
+
+            JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST,
+                    APIClient.baseUrl + "get_nearby_drivers", params,
+                    response -> {
+                        try {
+                            JSONArray driversArray = response.getJSONArray("nearby_drivers");
+                            updateDriverMarkers(driversArray);
+                        } catch (JSONException e) {
+                            Log.e("ReviewMap", "Error parsing drivers: " + e.getMessage());
+                        }
+                    },
+                    error -> Log.e("ReviewMap", "Error fetching drivers: " + error.getMessage())) {
+                @Override
+                public Map<String, String> getHeaders() {
+                    Map<String, String> headers = new HashMap<>();
+                    headers.put("Content-Type", "application/json");
+                    return headers;
+                }
+            };
+
+            VolleySingleton.getInstance(this).addToRequestQueue(request);
+        } catch (JSONException e) {
+            Log.e("ReviewMap", "Error creating params: " + e.getMessage());
+        }
+    }
+
+    private void updateDriverMarkers(JSONArray drivers) {
+        if (gMap == null) return;
+
+        Set<String> updatedDriverIds = new HashSet<>();
+
+        try {
+            for (int i = 0; i < drivers.length(); i++) {
+                JSONObject driver = drivers.getJSONObject(i);
+                String driverId = driver.getString("goods_driver_id");
+                double lat = driver.getDouble("latitude");
+                double lng = driver.getDouble("longitude");
+                String vehicleMapImage = driver.getString("vehicle_map_image");
+
+                updatedDriverIds.add(driverId);
+                LatLng position = new LatLng(lat, lng);
+
+                Marker existingMarker = driverMarkers.get(driverId);
+                if (existingMarker != null) {
+                    // Animate existing marker
+                    animateMarker(existingMarker, position);
+                } else {
+                    // Create new marker
+                    createDriverMarker(driverId, position, vehicleMapImage);
+                }
+            }
+
+            // Remove markers for drivers no longer in range
+            Iterator<Map.Entry<String, Marker>> iterator = driverMarkers.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<String, Marker> entry = iterator.next();
+                if (!updatedDriverIds.contains(entry.getKey())) {
+                    entry.getValue().remove();
+                    iterator.remove();
+                }
+            }
+        } catch (JSONException e) {
+            Log.e("ReviewMap", "Error updating markers: " + e.getMessage());
+        }
+    }
+
+    private void createDriverMarker(String driverId, LatLng position, String vehicleMapImage) {
+        // Load vehicle image from URL using Glide
+        Glide.with(this)
+                .asBitmap()
+                .load(vehicleMapImage)
+                .into(new CustomTarget<Bitmap>() {
+                    @Override
+                    public void onResourceReady(@NonNull Bitmap resource, Transition<? super Bitmap> transition) {
+                        // Scale bitmap to appropriate size
+                        Bitmap scaledBitmap = Bitmap.createScaledBitmap(resource, 100, 100, false);
+
+                        MarkerOptions markerOptions = new MarkerOptions()
+                                .position(position)
+                                .icon(BitmapDescriptorFactory.fromBitmap(scaledBitmap))
+                                .flat(true);
+
+                        Marker marker = gMap.addMarker(markerOptions);
+                        if (marker != null) {
+                            driverMarkers.put(driverId, marker);
+                        }
+                    }
+
+                    @Override
+                    public void onLoadCleared(@Nullable Drawable placeholder) {}
+                });
+    }
+
+    private void animateMarker(final Marker marker, final LatLng toPosition) {
+        final LatLng startPosition = marker.getPosition();
+        final Handler handler = new Handler(Looper.getMainLooper());
+        final long start = SystemClock.uptimeMillis();
+        final float durationInMs = 1500f;
+        final Interpolator interpolator = new LinearInterpolator();
+
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                long elapsed = SystemClock.uptimeMillis() - start;
+                float t = interpolator.getInterpolation(elapsed / durationInMs);
+
+                double lat = t * toPosition.latitude + (1 - t) * startPosition.latitude;
+                double lng = t * toPosition.longitude + (1 - t) * startPosition.longitude;
+                marker.setPosition(new LatLng(lat, lng));
+
+                // Rotate marker to face movement direction
+                float bearing = computeBearing(startPosition, toPosition);
+                marker.setRotation(bearing);
+
+                if (t < 1.0) {
+                    handler.postDelayed(this, 16); // 60fps
+                }
+            }
+        });
+    }
+
+    private float computeBearing(LatLng start, LatLng end) {
+        double lat1 = Math.toRadians(start.latitude);
+        double lat2 = Math.toRadians(end.latitude);
+        double lng1 = Math.toRadians(start.longitude);
+        double lng2 = Math.toRadians(end.longitude);
+
+        double dLng = lng2 - lng1;
+        double y = Math.sin(dLng) * Math.cos(lat2);
+        double x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+        return (float) Math.toDegrees(Math.atan2(y, x));
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -111,7 +299,15 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
             mapFragment.getMapAsync(this);
         }
 
-        binding.txtAddnewstop.setVisibility(dropList.size() <= 2 ? View.VISIBLE : View.GONE);
+        String dropsValue = preferenceManager.getStringValue("multiple_drops", "3");
+        int multipleDrops;
+        try {
+            multipleDrops = Integer.parseInt(dropsValue);
+        } catch (NumberFormatException e) {
+            multipleDrops = 3; // fallback value
+        }
+        binding.txtAddnewstop.setVisibility(dropList.size() < multipleDrops ? View.VISIBLE : View.GONE);
+
         geoApiContext = new GeoApiContext.Builder()
                 .apiKey(getString(R.string.google_maps_key))
                 .build();
@@ -129,7 +325,13 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
     private void setupClickListeners() {
 
 //        binding.btnProce.setOnClickListener(v -> startActivity(new Intent(this, BookingReviewScreenActivity.class)
-        binding.btnProce.setOnClickListener(v -> startActivity(new Intent(this, AllGoodsVehiclesActivity.class)
+        binding.btnProce.setOnClickListener(v ->{
+
+                isPaused = true;
+        isTrackingDrivers = false;
+        markerUpdateHandler.removeCallbacksAndMessages(null);
+
+                startActivity(new Intent(this, AllGoodsVehiclesActivity.class)
                 .putExtra("cab",cabService)
                 .putExtra("total_distance", totalDistanceValue)
                 .putExtra("total_time", totalDuration)
@@ -138,7 +340,8 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
 
 
                 .putExtra("pickup", pickup)
-                .putExtra("drop", drop)));
+                .putExtra("drop", drop));
+        });
 
         binding.txtAddnewstop.setOnClickListener(v -> {
             Glb.addStopClicked = true;
@@ -181,6 +384,7 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
     public void onMapReady(@NonNull GoogleMap googleMap) {
         gMap = googleMap;
         updateMap(googleMap);
+        startTrackingDrivers(); // Start tracking after map is ready
     }
 
     public void updateMap(GoogleMap googleMap) {
@@ -510,8 +714,36 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (isPaused) {
+            // Restart tracking when coming back to screen
+            startTrackingDrivers();
+        }
+    }
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        isPaused = true;
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
+        isPaused = true;
+        isTrackingDrivers = false;
+        if(markerUpdateHandler !=null)
+        {markerUpdateHandler.removeCallbacksAndMessages(null);}
+
+        // Clear all driver markers
+        if(driverMarkers != null) {
+            for (Marker marker : driverMarkers.values()) {
+                marker.remove();
+            }
+            driverMarkers.clear();
+        }
 
         // Clear polylines
         if (polylines != null) {

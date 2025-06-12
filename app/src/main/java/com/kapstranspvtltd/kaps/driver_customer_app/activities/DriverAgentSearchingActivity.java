@@ -68,7 +68,7 @@ public class DriverAgentSearchingActivity extends BaseActivity implements OnMapR
 
     FusedLocationProviderClient fusedLocationProviderClient;
 
-    private static final int COUNTDOWN_TIME = 300; // 5 minutes in seconds
+    private static final int COUNTDOWN_TIME = 100; // 5 minutes in seconds
     private CountDownTimer countDownTimer;
     private PolylineOptions polylineOptions;
     private List<LatLng> polylinePoints;

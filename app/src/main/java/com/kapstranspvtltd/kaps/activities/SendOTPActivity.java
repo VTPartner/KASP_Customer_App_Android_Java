@@ -64,6 +64,7 @@ public class SendOTPActivity extends AppCompatActivity {
         initializeTextWatchers();
         setUpButtons();
         setupOtpPaste();
+        updateEditTextInputTypes();
     }
 
     private void setUpButtons() {
@@ -86,107 +87,76 @@ public class SendOTPActivity extends AppCompatActivity {
     }
 
     private void setupOtpPaste() {
-        // Set long click listener for paste functionality
-        View.OnLongClickListener longClickListener = v -> {
-            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            if (clipboard != null && clipboard.hasPrimaryClip()) {
-                try {
-                    String pastedText = clipboard.getPrimaryClip().getItemAt(0).getText().toString().trim();
-                    handlePastedText(pastedText);
-                    return true;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            return false;
-        };
-
-        // Apply long click listener to all OTP fields
-        binding.edOtp1.setOnLongClickListener(longClickListener);
-        binding.edOtp2.setOnLongClickListener(longClickListener);
-        binding.edOtp3.setOnLongClickListener(longClickListener);
-        binding.edOtp4.setOnLongClickListener(longClickListener);
-        binding.edOtp5.setOnLongClickListener(longClickListener);
-        binding.edOtp6.setOnLongClickListener(longClickListener);
-
-        // TextWatcher for handling regular paste and input
+        // Create a TextWatcher for handling paste in any EditText
         TextWatcher otpTextWatcher = new TextWatcher() {
             boolean isProcessing = false;
 
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (!isProcessing && s.length() > 1) {
+                if (isProcessing) return;
+
+                if (s.length() > 1) {
                     isProcessing = true;
-                    handlePastedText(s.toString());
+                    String pastedText = s.toString().trim();
+                    // Remove any spaces or special characters
+                    pastedText = pastedText.replaceAll("[^0-9]", "");
+
+                    if (pastedText.length() >= 6) {
+                        // Take only first 6 digits
+                        pastedText = pastedText.substring(0, 6);
+                        if (pastedText.matches("\\d+")) {
+                            setOTPDigits(pastedText);
+                        }
+                    }
                     isProcessing = false;
                 }
             }
 
             @Override
-            public void afterTextChanged(Editable s) {}
+            public void afterTextChanged(Editable s) {
+            }
         };
 
-        // Apply the text watcher to the first OTP field only
+        // Add the TextWatcher to all EditText fields
         binding.edOtp1.addTextChangedListener(otpTextWatcher);
-    }
+        binding.edOtp2.addTextChangedListener(otpTextWatcher);
+        binding.edOtp3.addTextChangedListener(otpTextWatcher);
+        binding.edOtp4.addTextChangedListener(otpTextWatcher);
+        binding.edOtp5.addTextChangedListener(otpTextWatcher);
+        binding.edOtp6.addTextChangedListener(otpTextWatcher);
 
-    private void handlePastedText(String text) {
-        // Clean the pasted text
-        String cleanText = text.replaceAll("[^0-9]", "");
+        // Make all EditText fields handle paste
+        View.OnClickListener pasteClickListener = v -> {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            if (clipboard != null && clipboard.hasPrimaryClip()) {
+                String pastedText = clipboard.getPrimaryClip().getItemAt(0).getText().toString().trim();
+                pastedText = pastedText.replaceAll("[^0-9]", "");
 
-        if (cleanText.length() >= 6) {
-            // Take only first 6 digits
-            cleanText = cleanText.substring(0, 6);
-
-            if (cleanText.matches("\\d+")) {
-                // Clear existing text
-                clearOTPFields();
-
-                // Set each digit
-                binding.edOtp1.setText(String.valueOf(cleanText.charAt(0)));
-                binding.edOtp2.setText(String.valueOf(cleanText.charAt(1)));
-                binding.edOtp3.setText(String.valueOf(cleanText.charAt(2)));
-                binding.edOtp4.setText(String.valueOf(cleanText.charAt(3)));
-                binding.edOtp5.setText(String.valueOf(cleanText.charAt(4)));
-                binding.edOtp6.setText(String.valueOf(cleanText.charAt(5)));
-
-                // Move focus to last field
-                binding.edOtp6.requestFocus();
-                binding.edOtp6.setSelection(binding.edOtp6.length());
-
-                // Hide keyboard
-                hideKeyboard();
-
-                // Optional: Auto verify after paste
-                if (validateOTP(cleanText)) {
-                    verifyOTPAndLogin();
+                if (pastedText.length() >= 6) {
+                    pastedText = pastedText.substring(0, 6);
+                    if (pastedText.matches("\\d+")) {
+                        setOTPDigits(pastedText);
+                    }
                 }
             }
-        }
-    }
+        };
 
-    // Update clearOTPFields to properly handle focus
-    private void clearOTPFields() {
-        binding.edOtp1.setText("");
-        binding.edOtp2.setText("");
-        binding.edOtp3.setText("");
-        binding.edOtp4.setText("");
-        binding.edOtp5.setText("");
-        binding.edOtp6.setText("");
-
-        // Request focus on first field
-        binding.edOtp1.requestFocus();
+        // Apply click listener to all fields
+        binding.edOtp1.setOnClickListener(pasteClickListener);
+        binding.edOtp2.setOnClickListener(pasteClickListener);
+        binding.edOtp3.setOnClickListener(pasteClickListener);
+        binding.edOtp4.setOnClickListener(pasteClickListener);
+        binding.edOtp5.setOnClickListener(pasteClickListener);
+        binding.edOtp6.setOnClickListener(pasteClickListener);
     }
 
     private void setOTPDigits(String otp) {
         if (otp.length() == 6) {
-            // First clear all fields
-            clearOTPFields();
-
-            // Then set each digit
+            // Set all digits at once
             binding.edOtp1.setText(String.valueOf(otp.charAt(0)));
             binding.edOtp2.setText(String.valueOf(otp.charAt(1)));
             binding.edOtp3.setText(String.valueOf(otp.charAt(2)));
@@ -200,9 +170,25 @@ public class SendOTPActivity extends AppCompatActivity {
 
             // Hide keyboard
             hideKeyboard();
+
+            // Optional: Auto verify if OTP matches
+            String enteredOTP = getEnteredOTP();
+            if (validateOTP(enteredOTP)) {
+                verifyOTPAndLogin();
+            }
         }
     }
 
+    // Update your XML to allow paste
+    private void updateEditTextInputTypes() {
+        // Remove maxLength restriction temporarily when handling paste
+        binding.edOtp1.setLongClickable(true);
+        binding.edOtp2.setLongClickable(true);
+        binding.edOtp3.setLongClickable(true);
+        binding.edOtp4.setLongClickable(true);
+        binding.edOtp5.setLongClickable(true);
+        binding.edOtp6.setLongClickable(true);
+    }
     private String getEnteredOTP() {
         return binding.edOtp1.getText().toString() +
                 binding.edOtp2.getText().toString() +
@@ -212,7 +198,15 @@ public class SendOTPActivity extends AppCompatActivity {
                 binding.edOtp6.getText().toString();
     }
 
-
+    private void clearOTPFields() {
+        binding.edOtp1.setText("");
+        binding.edOtp2.setText("");
+        binding.edOtp3.setText("");
+        binding.edOtp4.setText("");
+        binding.edOtp5.setText("");
+        binding.edOtp6.setText("");
+        binding.edOtp1.requestFocus();
+    }
 
     private boolean validateOTP(String enteredOTP) {
         if (enteredOTP.length() != 6) {

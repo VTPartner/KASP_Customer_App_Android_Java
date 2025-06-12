@@ -139,7 +139,7 @@ public class DriverOngoingBookingDetailsActivity extends AppCompatActivity imple
         super.onCreate(savedInstanceState);
         binding = ActivityDriverOngoingBookingBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab_new);
+        Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab);
         Bitmap smallMarker = resizeBitmap(original, 100, 100); // Resize to 100x100
 
         initGeoApiContext();

@@ -10,7 +10,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class APIClient {
 
-    public static final String RAZORPAY_KEY = "rzp_test_61op4YoSkMBW6u"; //Test key rzp_test_crEnVFpHxMh7sZ
+    public static final String RAZORPAY_KEY = "rzp_live_2A74eAF3LgxMVM"; //Test key rzp_test_crEnVFpHxMh7sZ
     static Retrofit retrofit = null;
     //    public static String baseUrl = "http://77.37.47.156:8000/api/vt_partner/";
 //    public static String baseUrl = "https://www.vtpartner.org/api/vt_partner/";

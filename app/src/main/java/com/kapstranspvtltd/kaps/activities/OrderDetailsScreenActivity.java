@@ -524,7 +524,16 @@ public class OrderDetailsScreenActivity extends AppCompatActivity implements OnM
         }
         // Payment details
         binding.txtSubfare.setText(orderDetails.getFormattedSubTotal());
-        binding.txtTotal.setText(orderDetails.getFormattedPriceTotal());
+
+        String totalPrice = orderDetails.getTotalPrice();
+        String penaltyPrice = orderDetails.getPenaltyAmount();
+
+        double parsedPenaltyPrice = Double.parseDouble(penaltyPrice);
+        double parsedtotalPrice = Double.parseDouble(totalPrice);
+        double finalPrice = parsedtotalPrice;
+        if(parsedPenaltyPrice > 0 ) finalPrice=parsedtotalPrice+parsedPenaltyPrice;
+        binding.txtPenalty.setText(penaltyPrice);
+        binding.txtTotal.setText("₹"+finalPrice+"");
 
         // Coupon discount
       if (orderDetails.getCouponDiscountAmount() > 0) {

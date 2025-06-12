@@ -11,20 +11,20 @@ import android.widget.TextView;
 import java.util.Locale;
 
 public class UnloadingTimerManager {
-    private static final String TAG = "CustomerAppUnloadingTimerManager";
+    private static final String TAG = "UnloadingTimerManager";
 
     // Preference keys
-    private static final String PREF_TIMER_START = "customer_unloading_timer_start_";
-    private static final String PREF_TIMER_PAUSED = "customer_unloading_timer_paused_";
-    private static final String PREF_REMAINING_TIME = "customer_unloading_remaining_time_";
-    private static final String PREF_PENALTY_START = "customer_penalty_timer_start_";
-    private static final String PREF_ACCUMULATED_PENALTY = "customer_accumulated_penalty_";
-    private static final String PREF_LAST_PENALTY_UPDATE = "customer_last_penalty_update_";
-    private static final String PREF_IS_PENALTY_RUNNING = "customer_is_penalty_running_";
-    private static final String PREF_PENALTY_AMOUNT = "customer_penalty_amount_";
-    private static final String PREF_INITIAL_WAITING_MINUTES = "customer_initial_waiting_minutes_";
-    private static final String PREF_PENALTY_PER_MINUTE = "customer_penalty_per_minute_";
-    private static final String PREF_TIMER_ACTIVE = "customer_timer_active_";
+    private static final String PREF_TIMER_START = "unloading_timer_start_";
+    private static final String PREF_TIMER_PAUSED = "unloading_timer_paused_";
+    private static final String PREF_REMAINING_TIME = "unloading_remaining_time_";
+    private static final String PREF_PENALTY_START = "penalty_timer_start_";
+    private static final String PREF_ACCUMULATED_PENALTY = "accumulated_penalty_";
+    private static final String PREF_LAST_PENALTY_UPDATE = "last_penalty_update_";
+    private static final String PREF_IS_PENALTY_RUNNING = "is_penalty_running_";
+    private static final String PREF_PENALTY_AMOUNT = "penalty_amount_";
+    private static final String PREF_INITIAL_WAITING_MINUTES = "initial_waiting_minutes_";
+    private static final String PREF_PENALTY_PER_MINUTE = "penalty_per_minute_";
+    private static final String PREF_TIMER_ACTIVE = "timer_active_";
 
     private final Context context;
     private final Handler handler;

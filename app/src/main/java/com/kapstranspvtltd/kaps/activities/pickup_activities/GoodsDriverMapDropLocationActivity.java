@@ -130,6 +130,8 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
 
     boolean showExactLocation = false;
 
+    private boolean isInitialLoad = true;
+
     ActivityResultLauncher<Intent> launcher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -138,7 +140,7 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
                     try {
                         Place place = Autocomplete.getPlaceFromIntent(data);
                         Log.e("TAG", "Place: " + place.getName() + ", " + place.getId());
-                        binding.edSearch.setText(place.getName());
+//                        binding.edSearch.setText(place.getName());
 //                        showExactLocation = true;
                         mMap.clear();
                         CameraUpdate yourLocation = CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 100);
@@ -177,7 +179,7 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
 
     private String senderName = "", senderNumber = "";
 
-    boolean proceedToNextScreen = false;
+    boolean proceedToNextScreen = false,showRecentSearchAddress = false;
     private PlacesClient placesClient;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -558,13 +560,21 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
                 drop.setRname(edName.getText().toString().trim());
                 drop.setRmobile(edMobile.getText().toString().trim());
 
-                if (dropList.size() == 3) {
-                    // Replace the last drop with the new one
-                    dropList.set(2, drop);
+                int multipleDrops;
+                try {
+                    multipleDrops = Integer.parseInt(preferenceManager.getStringValue("multiple_drops", "3"));
+                } catch (NumberFormatException e) {
+                    multipleDrops = 3; // Fallback
+                }
+
+                if (dropList.size() == multipleDrops) {
+                    // Replace the last drop
+                    dropList.set(dropList.size() - 1, drop);
                     Toast.makeText(this, "Last drop location updated", Toast.LENGTH_SHORT).show();
                 } else {
                     dropList.add(drop);
                 }
+
 
 
                 startActivity(new Intent(this, ReviewMapActivity.class)
@@ -730,6 +740,8 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
                 if (true) {
                     binding.lvlSorry.setVisibility(View.GONE);
                     binding.btnSend.setVisibility(View.VISIBLE);
+                    // Set isInitialLoad to false before getting address
+                    isInitialLoad = false;
                     new GetAddressFromLatLng().executeOnExecutor(
                             AsyncTask.THREAD_POOL_EXECUTOR,
                             latLng.latitude,
@@ -962,8 +974,11 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
                     String address = userAddress.getString("drop_fulladdress");
                     if (address != null) {
                         binding.txtAddress.setText(address);
-//                        if(showExactLocation == false)
+                        // Only set search text if not initial load and not showing exact location
+                        if (showRecentSearchAddress) {
                             binding.edSearch.setText(address);
+                        }
+
                         binding.locationMarkertext.setVisibility(View.VISIBLE);
                     }
                 }
@@ -1077,8 +1092,14 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         // Create adapters
+//        PlaceSuggestionAdapter suggestionsAdapter = new PlaceSuggestionAdapter(
+//                prediction -> fetchPlaceDetails(prediction.getPlaceId(), dialog));
+        // When a place is selected from search, it's not initial load
         PlaceSuggestionAdapter suggestionsAdapter = new PlaceSuggestionAdapter(
-                prediction -> fetchPlaceDetails(prediction.getPlaceId(), dialog));
+                prediction -> {
+                    isInitialLoad = false; // Reset flag when search is used
+                    fetchPlaceDetails(prediction.getPlaceId(), dialog);
+                });
 
         List<RecentSearch> recentSearches = getRecentSearches();
         RecentSearchAdapter recentAdapter = new RecentSearchAdapter(recentSearches,
@@ -1191,7 +1212,13 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
 
 
     private void fetchPlaceDetails(String placeId, BottomSheetDialog dialog) {
-        List<Place.Field> placeFields = Arrays.asList(Place.Field.LAT_LNG, Place.Field.ADDRESS);
+        List<Place.Field> placeFields = Arrays.asList(
+                Place.Field.LAT_LNG,
+                Place.Field.ADDRESS,
+                Place.Field.NAME,
+                Place.Field.BUSINESS_STATUS
+        );
+
         FetchPlaceRequest request = FetchPlaceRequest.builder(placeId, placeFields).build();
 
         placesClient.fetchPlace(request)
@@ -1199,20 +1226,55 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
                     Place place = response.getPlace();
                     LatLng latLng = place.getLatLng();
                     String address = place.getAddress();
+                    String name = place.getName();
 
                     if (latLng != null) {
-                        saveRecentSearch(new RecentSearch(address, latLng.latitude, latLng.longitude));
-                        dialog.dismiss();
-                        moveCamera(latLng.latitude, latLng.longitude);
-                        binding.edSearch.setText(address);
+                        // Get current location
+                        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                            fusedLocationProviderClient.getLastLocation()
+                                    .addOnSuccessListener(currentLocation -> {
+                                        if (currentLocation != null) {
+                                            double distance = calculateDistance(
+                                                    currentLocation.getLatitude(),
+                                                    currentLocation.getLongitude(),
+                                                    latLng.latitude,
+                                                    latLng.longitude
+                                            );
+
+                                            saveRecentSearch(new RecentSearch(
+                                                    name,
+                                                    address,
+                                                    latLng.latitude,
+                                                    latLng.longitude,
+                                                    distance
+                                            ));
+
+                                            dialog.dismiss();
+                                            moveCamera(latLng.latitude, latLng.longitude);
+                                            binding.edSearch.setText(name != null ? name : address);
+                                        }
+                                    });
+                        }
                     }
                 })
                 .addOnFailureListener(exception -> {
                     if (exception instanceof ApiException) {
-                        ApiException apiException = (ApiException) exception;
-                        Log.e("PlacesAPI", "Place not found: " + apiException.getMessage());
+                        Log.e("PlacesAPI", "Place not found: " + exception.getMessage());
                     }
                 });
+    }
+
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        Location location1 = new Location("");
+        location1.setLatitude(lat1);
+        location1.setLongitude(lon1);
+
+        Location location2 = new Location("");
+        location2.setLatitude(lat2);
+        location2.setLongitude(lon2);
+
+        float distanceInMeters = location1.distanceTo(location2);
+        return distanceInMeters / 1000; // Convert to kilometers
     }
     private void saveRecentSearch(RecentSearch search) {
         List<RecentSearch> searches = getRecentSearches();

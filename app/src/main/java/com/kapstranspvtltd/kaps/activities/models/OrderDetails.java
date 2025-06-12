@@ -44,6 +44,16 @@ public class OrderDetails {
     private String receiverNumber;
     private String paymentMethod;
     private String totalPrice;
+
+    public String getPenaltyAmount() {
+        return penaltyAmount;
+    }
+
+    public void setPenaltyAmount(String penaltyAmount) {
+        this.penaltyAmount = penaltyAmount;
+    }
+
+    private String penaltyAmount;
     private String basePrice;
     private String gstAmount;
     private String igstAmount;
@@ -551,6 +561,9 @@ public class OrderDetails {
         details.setBasePrice(json.getString("base_price"));
         details.setGstAmount(json.getString("gst_amount"));
         details.setIgstAmount(json.getString("igst_amount"));
+        if (json.has("penalty_amount") && !json.isNull("penalty_amount")) {
+            details.setPenaltyAmount(json.getString("penalty_amount"));
+        }
 
         // Time details
         details.setTotalTime(json.getString("total_time"));

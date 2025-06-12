@@ -37,7 +37,7 @@
                 android:layout_marginTop="10dp"
                 android:layout_margin="8dp"
                 android:textStyle="bold"
-                android:text="Select Cab" />
+                android:text="Select Vehicle" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerVehicles"

@@ -187,6 +187,7 @@ public class HomeSelectFragment extends Fragment {
                         response -> {
                             String message = response.optString("message");
                             Log.d("Auth", "Token update response: " + message);
+                            fetchControlSettings();
                                     fetchServices();
         setupOffers();
                         },
@@ -584,6 +585,64 @@ public class HomeSelectFragment extends Fragment {
                     hideLoading();
                     handleError(error);
                 }
+        ) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Content-Type", "application/json");
+                return headers;
+            }
+        };
+
+        request.setRetryPolicy(new DefaultRetryPolicy(
+                30000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        ));
+
+        VolleySingleton.getInstance(requireContext()).addToRequestQueue(request);
+    }
+
+    private void fetchControlSettings() {
+        String url = APIClient.baseUrl + "get_control_settings";
+
+        JsonObjectRequest request = new JsonObjectRequest(
+                Request.Method.POST,
+                url,
+                null, // No body needed for this request
+                response -> {
+                    try {
+                        if (response.has("settings")) {
+                            JSONObject settings = response.getJSONObject("settings");
+
+                            // Save each setting to preferences
+                            preferenceManager.saveStringValue("booking_timeout",
+                                    settings.optString("booking_timeout", "30"));
+
+                            preferenceManager.saveStringValue("multiple_drops",
+                                    settings.optString("multiple_drops", "3"));
+
+                            preferenceManager.saveStringValue("agent_recharge_expiry_show",
+                                    settings.optString("agent_recharge_expiry_show", "No"));
+
+                            preferenceManager.saveStringValue("hike_price_show",
+                                    settings.optString("hike_price_show", "No"));
+
+                            preferenceManager.saveStringValue("agent_cancel_button_show",
+                                    settings.optString("agent_cancel_button_show", "No"));
+
+                            // Save last updated times if needed
+                            if (response.has("last_updated")) {
+                                JSONObject lastUpdated = response.getJSONObject("last_updated");
+                                preferenceManager.saveStringValue("settings_last_updated",
+                                        lastUpdated.optString("booking_timeout", "0"));
+                            }
+                        }
+                    } catch (Exception e) {
+                        Log.e("ControlSettings", "Error parsing settings: " + e.getMessage());
+                    }
+                },
+                error -> Log.e("ControlSettings", "Error fetching settings: " + error.getMessage())
         ) {
             @Override
             public Map<String, String> getHeaders() {

@@ -148,12 +148,7 @@
         <activity
             android:name=".activities.CustomerEditProfileActivity"
             android:exported="false" />
-        <activity
-            android:name=".activities.goods_service_booking_activities.BookingDetailsReviewActivity"
-            android:exported="false" />
-        <activity
-            android:name=".activities.goods_service_booking_activities.AllVehicles"
-            android:exported="false" />
+
         <activity
             android:name=".activities.pickup_activities.WebViewActivity"
             android:exported="false" />
@@ -232,14 +227,7 @@
                 android:resource="@xml/provider_paths" />
         </provider>
 
-        <receiver
-            android:name=".goods_driver_activities.NewLiveRideActivity$ServiceRestartReceiver"
-            android:enabled="true"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.vtpartnertranspvtltd.vt_partner.RESTART_SERVICE" />
-            </intent-filter>
-        </receiver>
+
     </application>
 
 </manifest>

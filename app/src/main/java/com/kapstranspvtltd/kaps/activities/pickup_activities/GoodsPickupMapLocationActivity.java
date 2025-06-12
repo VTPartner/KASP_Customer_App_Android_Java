@@ -1057,7 +1057,13 @@ if(cabService){
 
 
     private void fetchPlaceDetails(String placeId, BottomSheetDialog dialog) {
-        List<Place.Field> placeFields = Arrays.asList(Place.Field.LAT_LNG, Place.Field.ADDRESS);
+        List<Place.Field> placeFields = Arrays.asList(
+                Place.Field.LAT_LNG,
+                Place.Field.ADDRESS,
+                Place.Field.NAME,
+                Place.Field.BUSINESS_STATUS
+        );
+
         FetchPlaceRequest request = FetchPlaceRequest.builder(placeId, placeFields).build();
 
         placesClient.fetchPlace(request)
@@ -1065,18 +1071,40 @@ if(cabService){
                     Place place = response.getPlace();
                     LatLng latLng = place.getLatLng();
                     String address = place.getAddress();
+                    String name = place.getName();
 
                     if (latLng != null) {
-                        saveRecentSearch(new RecentSearch(address, latLng.latitude, latLng.longitude));
-                        dialog.dismiss();
-                        moveCamera(latLng.latitude, latLng.longitude);
-                        binding.edSearch.setText(address);
+                        // Get current location
+                        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                            fusedLocationProviderClient.getLastLocation()
+                                    .addOnSuccessListener(currentLocation -> {
+                                        if (currentLocation != null) {
+                                            double distance = calculateDistance(
+                                                    currentLocation.getLatitude(),
+                                                    currentLocation.getLongitude(),
+                                                    latLng.latitude,
+                                                    latLng.longitude
+                                            );
+
+                                            saveRecentSearch(new RecentSearch(
+                                                    name,
+                                                    address,
+                                                    latLng.latitude,
+                                                    latLng.longitude,
+                                                    distance
+                                            ));
+
+                                            dialog.dismiss();
+                                            moveCamera(latLng.latitude, latLng.longitude);
+                                            binding.edSearch.setText(name != null ? name : address);
+                                        }
+                                    });
+                        }
                     }
                 })
                 .addOnFailureListener(exception -> {
                     if (exception instanceof ApiException) {
-                        ApiException apiException = (ApiException) exception;
-                        Log.e("PlacesAPI", "Place not found: " + apiException.getMessage());
+                        Log.e("PlacesAPI", "Place not found: " + exception.getMessage());
                     }
                 });
     }
@@ -1112,6 +1140,59 @@ if(cabService){
         } catch (Exception e) {
             return new ArrayList<>();
         }
+    }
+
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        Location location1 = new Location("");
+        location1.setLatitude(lat1);
+        location1.setLongitude(lon1);
+
+        Location location2 = new Location("");
+        location2.setLatitude(lat2);
+        location2.setLongitude(lon2);
+
+        float distanceInMeters = location1.distanceTo(location2);
+        return distanceInMeters / 1000; // Convert to kilometers
+    }
+
+    private static final String DISTANCE_MATRIX_API_URL = "https://maps.googleapis.com/maps/api/distancematrix/json";
+
+    // Add this method to calculate distance using Distance Matrix API
+    private void getDistanceFromDistanceMatrix(double originLat, double originLng,
+                                               double destLat, double destLng,
+                                               DistanceCallback callback) {
+        String url = String.format(Locale.US,
+                "%s?origins=%f,%f&destinations=%f,%f&mode=driving&key=%s",
+                DISTANCE_MATRIX_API_URL,
+                originLat, originLng,
+                destLat, destLng,
+                getString(R.string.google_maps_key));
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null,
+                response -> {
+                    try {
+                        JSONArray rows = response.getJSONArray("rows");
+                        JSONObject row = rows.getJSONObject(0);
+                        JSONArray elements = row.getJSONArray("elements");
+                        JSONObject element = elements.getJSONObject(0);
+                        JSONObject distance = element.getJSONObject("distance");
+                        int distanceInMeters = distance.getInt("value");
+                        String distanceText = distance.getString("text");
+                        callback.onDistanceCalculated(distanceInMeters / 1000.0, distanceText);
+                    } catch (Exception e) {
+                        Log.e("DistanceMatrix", "Error parsing response: " + e.getMessage());
+                        callback.onError("Error calculating distance");
+                    }
+                },
+                error -> callback.onError("Error fetching distance")
+        );
+
+        VolleySingleton.getInstance(this).addToRequestQueue(request);
+    }
+
+    private interface DistanceCallback {
+        void onDistanceCalculated(double distanceKm, String distanceText);
+        void onError(String message);
     }
 
 }

@@ -564,7 +564,17 @@ public class CabBookingReviewActivity extends BaseActivity implements VehicleAda
         binding.txtDropaddress.setText(drop.getAddress());
 
 //        binding.btnBook.setOnClickListener(v -> saveBookingDetails());
-                binding.btnBook.setOnClickListener(v -> showPriceAdjustmentSheet());
+//                binding.btnBook.setOnClickListener(v -> showPriceAdjustmentSheet());
+        boolean showHikePrice = preferenceManager.getStringValue("hike_price_show", "No")
+                .equalsIgnoreCase("Yes");
+
+        binding.btnBook.setOnClickListener(v -> {
+            if (showHikePrice) {
+                showPriceAdjustmentSheet();
+            } else {
+                saveBookingDetails();
+            }
+        });
     }
 
     private void saveBookingDetails() {

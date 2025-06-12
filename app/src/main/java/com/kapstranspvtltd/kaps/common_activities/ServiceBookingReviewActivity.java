@@ -204,7 +204,17 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
         binding.removeCoupon.setOnClickListener(v -> removeCoupon());
 
 //        binding.proceedButton.setOnClickListener(v -> proceedWithBooking());
-        binding.proceedButton.setOnClickListener(v -> showPriceAdjustmentSheet());
+//        binding.proceedButton.setOnClickListener(v -> showPriceAdjustmentSheet());
+        boolean showHikePrice = preferenceManager.getStringValue("hike_price_show", "No")
+                .equalsIgnoreCase("Yes");
+
+        binding.proceedButton.setOnClickListener(v -> {
+            if (showHikePrice) {
+                showPriceAdjustmentSheet();
+            } else {
+                saveBookingDetails();
+            }
+        });
     }
 
     private void loadData() {
@@ -223,14 +233,13 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
     }
 
     private void updatePriceDetails() {
+        // Calculate final price after discount
         double finalPrice = totalPrice - discountAmount;
 
+        // Update UI elements
         binding.tripFareText.setText(String.format("₹%.2f", totalPrice));
         binding.serviceHoursText.setText(String.format("%d Hrs",
                 getIntent().getIntExtra("service_hours", 0)));
-
-
-
 
         if (discountAmount > 0) {
             binding.discountLayout.setVisibility(View.VISIBLE);
@@ -239,9 +248,10 @@ public class ServiceBookingReviewActivity extends AppCompatActivity {
             binding.discountLayout.setVisibility(View.GONE);
         }
 
-        finalAmount = adjustedPrice > 0 ? adjustedPrice : Math.round(totalPrice);
+        // Set finalAmount after applying discount and any adjustments
+        finalAmount = adjustedPrice > 0 ? adjustedPrice : Math.round(finalPrice); // Changed from totalPrice to finalPrice
 
-
+        // Update UI with final amount
         binding.finalAmountText.setText(String.format("₹%.2f", finalAmount));
         binding.bottomSheetAmount.setText(String.format("₹%.2f", finalAmount));
     }

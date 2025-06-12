@@ -75,8 +75,14 @@ public class VehicleAdapter extends RecyclerView.Adapter<VehicleAdapter.VehicleV
 //        holder.binding.txtBasePrice.setText(sessionManager.getStringData(SessionManager.currency) +
 //                new DecimalFormat("##.##").format(totalPrice));
 //        holder.binding.txtTime.setText(time);
+        double pricePerKm = vehicle.getPricePerKm();
+        double baseFare = vehicle.getBaseFare();
+
+        double finalPrice = pricePerKm;
+        if(pricePerKm<=baseFare) finalPrice = baseFare;
 holder.binding.txtBasePrice.setText("₹"+vehicle.getBaseFare()+"");
-holder.binding.txtPricePerKm.setText("₹"+vehicle.getPricePerKm()+"");
+holder.binding.txtPricePerKm.setText("₹"+finalPrice+"");
+//holder.binding.txtPricePerKm.setText("₹"+vehicle.getPricePerKm()+"");
         // Update UI based on selection state
         updateSelectionState(holder, vehicle);
 

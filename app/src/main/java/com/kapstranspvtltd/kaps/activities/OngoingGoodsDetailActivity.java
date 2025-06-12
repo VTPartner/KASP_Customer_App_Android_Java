@@ -168,9 +168,9 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
         binding = ActivityOngoingGoodsDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab_new);
-        Bitmap smallMarker = resizeBitmap(original, 100, 100); // Resize to 100x100
-        driverIcon = BitmapDescriptorFactory.fromBitmap(smallMarker);
+//        Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab);
+//        Bitmap smallMarker = resizeBitmap(original, 100, 100); // Resize to 100x100
+//        driverIcon = BitmapDescriptorFactory.fromBitmap(smallMarker);
 
 
         initGeoApiContext();
@@ -659,6 +659,10 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
 
     private BookingDetails parseBookingDetails(JSONObject result) throws JSONException {
         BookingDetails details = new BookingDetails();
+        String bookingStatus1 = result.optString("booking_status");
+        if(!bookingStatus1.equalsIgnoreCase("Driver Accepted") || !bookingStatus1.equalsIgnoreCase("Driver Arrived") || !bookingStatus1.equalsIgnoreCase("Cancelled")){
+            binding.shareLocationBtn.setVisibility(View.VISIBLE);
+        }
 
         details.setCustomerName(result.optString("customer_name"));
         details.setCustomerId(result.optString("customer_id"));
@@ -787,8 +791,8 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
     }
 
     private void setupDriverMarker() {
-        if (!cabService && bookingDetails != null) {
-
+        if (bookingDetails != null) {
+            System.out.println("vehicleMapImage::"+vehicleMapImage);
             if (vehicleMapImage != null && !vehicleMapImage.equals("NA")) {
                 // Load image from URL and convert to marker icon
                 Glide.with(this)
@@ -807,7 +811,7 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
                         });
             } else {
                 // Use default icon
-                Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab_new);
+                Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab);
                 Bitmap smallMarker = resizeBitmap(original, 100, 100);
                 driverIcon = BitmapDescriptorFactory.fromBitmap(smallMarker);
             }
@@ -852,48 +856,41 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
 
         //Show the markers provided my the api
         setupDriverMarker();
-
-        /*if (!cabService && bookingDetails != null) {
-            if (bookingDetails.getBookingStatus().equals("Otp Verified")) {
-                // Initialize and start timer
-                if (timerManager == null) {
-                    timerManager = new UnloadingTimerManager(
-                            this,
-                            Integer.parseInt(bookingId),
-                            binding.txtUnloadingTime,
-                            binding.txtPenaltyInfo,
-                            new UnloadingTimerManager.UnloadingTimerListener() {
-                                @Override
-                                public void onPenaltyUpdated(double totalPenalty, long penaltyMinutes) {
-                                    bookingDetails.setPenaltyAmount(totalPenalty);
-
-                                }
-
-                                @Override
-                                public void onTimerFinished() {
-                                    showToast("Free unloading time finished!");
-                                }
+String currentApiStatus = bookingDetails.getBookingStatus();
+        if (bookingDetails != null) {
+            //It will start can culating the timings
+            if (currentApiStatus.equalsIgnoreCase("Driver Arrived")) {
+                // Initialize timer
+                timerManager = new UnloadingTimerManager(this, Integer.parseInt(bookingId),
+                        binding.txtUnloadingTime, binding.txtPenaltyInfo,
+                        new UnloadingTimerManager.UnloadingTimerListener() {
+                            @Override
+                            public void onPenaltyUpdated(double totalPenalty, long penaltyMinutes) {
+                                // Store penalty for API update
+                                penaltyCharges = totalPenalty;
                             }
-                    );
-                }
+
+                            @Override
+                            public void onTimerFinished() {
+                                showToast("Free unloading time finished!");
+                            }
+                        });
 
                 binding.timerContainer.setVisibility(View.VISIBLE);
-                timerManager.startTimer(
-                        minimumWaitingTime,
-                        penaltyCharges
-                );
-            } else if (bookingDetails.getBookingStatus().equals("Start Trip")) {
+                timerManager.startTimer(minimumWaitingTime, penaltyCharges);
+            } else if (currentApiStatus.equalsIgnoreCase("Start Trip")) {
                 if (timerManager != null) {
                     double finalPenalty = timerManager.getCurrentPenalty();
                     if (finalPenalty > 0) {
-//                        bookingDetails.setPenaltyAmount(finalPenalty);
-                        updatePenaltyOnServer(finalPenalty);
+                        penaltyCharges = finalPenalty;
+//                        // Update penalty amount in backend this is done by agent only
+
                     }
                     timerManager.stopTimer();
                 }
                 binding.timerContainer.setVisibility(View.GONE);
             }
-        }*/
+        }
 
         // Update drop addresses section
         binding.lvlDrop.removeAllViews();
@@ -905,7 +902,7 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
         String bookingStatus1 = bookingDetails.getBookingStatus();
         boolean isCancelled = bookingStatus1.equalsIgnoreCase("Cancelled");
 
-        if (!cabService && !isMultipleDrops && !isCancelled) {
+        if (!isMultipleDrops && !isCancelled) {
             binding.btnEditDropLocation.setVisibility(View.VISIBLE);
         } else {
             binding.btnEditDropLocation.setVisibility(View.GONE);
@@ -937,11 +934,10 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
         if(bookingStatus.equalsIgnoreCase("Cancelled")){
             binding.imgCall.setVisibility(View.GONE);
             binding.otpLyt.setVisibility(View.GONE);
+            binding.shareLocationBtn.setVisibility(View.GONE);
         }
         if (bookingStatus.equalsIgnoreCase("Make Payment")) {
-
             showPaymentDialog(bookingDetails.getTotalPrice());
-
         }
         // Update rider details
         if (!TextUtils.isEmpty(bookingDetails.getDriverImage())) {
@@ -1844,8 +1840,8 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
         // Calculate new total price based on new distance
         double newTotalPrice = currentDistance * pricePerKm;
 
-        // Ensure new price doesn't go below base price
-        return Math.max(newTotalPrice, basePrice);
+        // Ensure new price doesn't go below base price and round to 0 decimal places
+        return Math.round(Math.max(newTotalPrice, basePrice));
     }
 
     private void updateDropLocation(double lat, double lng, String address, Runnable onSuccess) {

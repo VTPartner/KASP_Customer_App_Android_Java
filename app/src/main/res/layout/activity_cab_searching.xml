@@ -278,9 +278,9 @@
                     android:id="@+id/searching_driver_icon"
                     android:layout_width="match_parent"
                     android:layout_height="180dp"
-                    android:visibility="gone"
+
                     android:scaleType="fitCenter"
-                    android:src="@drawable/searching_driver"/>
+                    android:src="@drawable/cab_driver_searching"/>
 
                 <TextView
                     android:visibility="gone"

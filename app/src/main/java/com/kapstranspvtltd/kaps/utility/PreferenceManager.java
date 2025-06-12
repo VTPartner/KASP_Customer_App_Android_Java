@@ -209,4 +209,6 @@ public class PreferenceManager {
     public String getUserEmail() {
         return getStringValue(Keys.EMAIL);
     }
+
+
 }

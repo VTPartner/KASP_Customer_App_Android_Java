@@ -960,7 +960,13 @@ public class DriverPickupLocationActivity extends BaseActivity implements OnMapR
 
 
     private void fetchPlaceDetails(String placeId, BottomSheetDialog dialog) {
-        List<Place.Field> placeFields = Arrays.asList(Place.Field.LAT_LNG, Place.Field.ADDRESS);
+        List<Place.Field> placeFields = Arrays.asList(
+                Place.Field.LAT_LNG,
+                Place.Field.ADDRESS,
+                Place.Field.NAME,
+                Place.Field.BUSINESS_STATUS
+        );
+
         FetchPlaceRequest request = FetchPlaceRequest.builder(placeId, placeFields).build();
 
         placesClient.fetchPlace(request)
@@ -968,20 +974,55 @@ public class DriverPickupLocationActivity extends BaseActivity implements OnMapR
                     Place place = response.getPlace();
                     LatLng latLng = place.getLatLng();
                     String address = place.getAddress();
+                    String name = place.getName();
 
                     if (latLng != null) {
-                        saveRecentSearch(new RecentSearch(address, latLng.latitude, latLng.longitude));
-                        dialog.dismiss();
-                        moveCamera(latLng.latitude, latLng.longitude);
-                        binding.edSearch.setText(address);
+                        // Get current location
+                        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                            fusedLocationProviderClient.getLastLocation()
+                                    .addOnSuccessListener(currentLocation -> {
+                                        if (currentLocation != null) {
+                                            double distance = calculateDistance(
+                                                    currentLocation.getLatitude(),
+                                                    currentLocation.getLongitude(),
+                                                    latLng.latitude,
+                                                    latLng.longitude
+                                            );
+
+                                            saveRecentSearch(new RecentSearch(
+                                                    name,
+                                                    address,
+                                                    latLng.latitude,
+                                                    latLng.longitude,
+                                                    distance
+                                            ));
+
+                                            dialog.dismiss();
+                                            moveCamera(latLng.latitude, latLng.longitude);
+                                            binding.edSearch.setText(name != null ? name : address);
+                                        }
+                                    });
+                        }
                     }
                 })
                 .addOnFailureListener(exception -> {
                     if (exception instanceof ApiException) {
-                        ApiException apiException = (ApiException) exception;
-                        Log.e("PlacesAPI", "Place not found: " + apiException.getMessage());
+                        Log.e("PlacesAPI", "Place not found: " + exception.getMessage());
                     }
                 });
+    }
+
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        Location location1 = new Location("");
+        location1.setLatitude(lat1);
+        location1.setLongitude(lon1);
+
+        Location location2 = new Location("");
+        location2.setLatitude(lat2);
+        location2.setLongitude(lon2);
+
+        float distanceInMeters = location1.distanceTo(location2);
+        return distanceInMeters / 1000; // Convert to kilometers
     }
     private void saveRecentSearch(RecentSearch search) {
         List<RecentSearch> searches = getRecentSearches();

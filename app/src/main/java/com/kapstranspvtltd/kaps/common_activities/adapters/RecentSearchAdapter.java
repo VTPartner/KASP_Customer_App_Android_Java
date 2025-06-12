@@ -1,5 +1,6 @@
 package com.kapstranspvtltd.kaps.common_activities.adapters;
 
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -47,13 +48,16 @@ public class RecentSearchAdapter extends RecyclerView.Adapter<RecentSearchAdapte
     }
 
     class ViewHolder extends RecyclerView.ViewHolder {
-        TextView addressText;
+        TextView addressText,placeNameText;
+        TextView distanceText;
         ImageView iconView;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
+            placeNameText = itemView.findViewById(R.id.placeNameText);
             addressText = itemView.findViewById(R.id.addressText);
             iconView = itemView.findViewById(R.id.iconHistory);
+            distanceText = itemView.findViewById(R.id.distanceText);
 
             itemView.setOnClickListener(v -> {
                 int position = getAdapterPosition();
@@ -64,7 +68,17 @@ public class RecentSearchAdapter extends RecyclerView.Adapter<RecentSearchAdapte
         }
 
         void bind(RecentSearch search) {
-            addressText.setText(search.getAddress());
+            // Show both place name and address if place name exists
+            if (!TextUtils.isEmpty(search.getCompanyName())) {
+                placeNameText.setVisibility(View.VISIBLE);
+                placeNameText.setText(search.getCompanyName());
+                addressText.setText(search.getAddress());
+                distanceText.setText(String.format("%.1f km away", search.getDistance()));
+            } else {
+                placeNameText.setVisibility(View.GONE);
+                addressText.setText(search.getAddress());
+            }
+//            addressText.setText(search.getAddress());
         }
     }
 }

@@ -777,12 +777,22 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         binding.txtDropaddress.setText(drop.getAddress());
 
 //        binding.btnBook.setOnClickListener(v -> saveBookingDetails());
-        binding.btnBook.setOnClickListener(v -> showPriceAdjustmentSheet());
+        boolean showHikePrice = preferenceManager.getStringValue("hike_price_show", "No")
+                .equalsIgnoreCase("Yes");
+
+        binding.btnBook.setOnClickListener(v -> {
+            if (showHikePrice) {
+                showPriceAdjustmentSheet();
+            } else {
+                saveBookingDetails();
+            }
+        });
+
         //Vehicle details
         if (selectedVehicle != null) {
             binding.serviceVehicleName.setText(selectedVehicle.getVehicleName());
             binding.serviceDurationDetails.setText("[" + totalDistance + " km  - " + exactTime + "]");
-            binding.minimumTimeWaiting.setText("Free Unloading time "+minimumWaitingTime+" mins");
+            binding.minimumTimeWaiting.setText("Free Waiting time "+minimumWaitingTime+" mins");
             binding.btnBook.setText("Book " + selectedVehicle.getVehicleName());
 
             // Show/hide body type spinner based on vehicle ID

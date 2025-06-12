@@ -1,5 +1,6 @@
 package com.kapstranspvtltd.kaps.activities.pickup_activities;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -49,7 +50,7 @@ public class GoodsVehiclesNewAdapter extends RecyclerView.Adapter<GoodsVehiclesN
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull ViewHolder holder, @SuppressLint("RecyclerView") int position) {
         VehicleModel vehicle = vehicles.get(position);
         
         // Load vehicle image using Glide
@@ -67,7 +68,10 @@ public class GoodsVehiclesNewAdapter extends RecyclerView.Adapter<GoodsVehiclesN
         double totalPrice = vehicle.getPricePerKm() ;
         DecimalFormat df = new DecimalFormat("0.00");
         String formattedPrice = df.format(totalPrice);
-        holder.tvTotalPrice.setText("₹" + formattedPrice);
+        double baseFare = vehicle.getBaseFare();
+        String finalPrice = formattedPrice;
+        if(Double.parseDouble(formattedPrice)<=baseFare) finalPrice = baseFare+"";
+        holder.tvTotalPrice.setText("₹" + finalPrice);
 
         // Set selection state
         holder.itemView.setBackgroundResource(
@@ -75,6 +79,12 @@ public class GoodsVehiclesNewAdapter extends RecyclerView.Adapter<GoodsVehiclesN
             R.color.selected_item_background : 
             android.R.color.transparent
         );
+
+        holder.imgInfoPop.setOnClickListener(v-> {
+            if (listener instanceof AllGoodsVehiclesActivity) {
+                ((AllGoodsVehiclesActivity) listener).showVehicleDetailsBottomSheet(vehicle);
+            }
+        });
 
         holder.itemView.setOnClickListener(v -> {
             long currentTime = System.currentTimeMillis();
@@ -112,6 +122,8 @@ public class GoodsVehiclesNewAdapter extends RecyclerView.Adapter<GoodsVehiclesN
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView ivVehicle;
+
+        ImageView imgInfoPop;
         TextView tvVehicleName;
         TextView tvVehicleWeight;
         TextView tvBaseFare;
@@ -124,6 +136,8 @@ public class GoodsVehiclesNewAdapter extends RecyclerView.Adapter<GoodsVehiclesN
             tvVehicleWeight = itemView.findViewById(R.id.tvVehicleWeight);
             tvBaseFare = itemView.findViewById(R.id.tvBaseFare);
             tvTotalPrice = itemView.findViewById(R.id.tvTotalPrice);
+            imgInfoPop = itemView.findViewById(R.id.imgInfo);
+
         }
     }
 }

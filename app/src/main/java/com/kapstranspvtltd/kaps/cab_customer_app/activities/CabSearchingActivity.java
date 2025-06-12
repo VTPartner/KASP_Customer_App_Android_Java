@@ -67,7 +67,7 @@ public class CabSearchingActivity extends BaseActivity implements OnMapReadyCall
 
     FusedLocationProviderClient fusedLocationProviderClient;
 
-    private static final int COUNTDOWN_TIME = 300; // 5 minutes in seconds
+    private static final int COUNTDOWN_TIME = 100; // 5 minutes in seconds
     private CountDownTimer countDownTimer;
     private PolylineOptions polylineOptions;
     private List<LatLng> polylinePoints;
@@ -95,7 +95,7 @@ public class CabSearchingActivity extends BaseActivity implements OnMapReadyCall
         binding.btnCancel.setOnClickListener(v -> showCancelConfirmationDialog());
         Glide.with(this)
                 .asGif()
-                .load(R.drawable.searching_driver)
+                .load(R.drawable.cab_driver_searching)
                 .into(binding.searchingDriverIcon);
     }
 
