@@ -14,7 +14,6 @@ import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.kapstranspvtltd.kaps.activities.BaseActivity;
-import com.kapstranspvtltd.kaps.activities.pickup_activities.GoodsDriverMapDropLocationActivity;
 import com.kapstranspvtltd.kaps.common_activities.adapters.ServiceAdapter;
 import com.kapstranspvtltd.kaps.common_activities.models.Service;
 import com.kapstranspvtltd.kaps.databinding.ActivityAllServiceBinding;

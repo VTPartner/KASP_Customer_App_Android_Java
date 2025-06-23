@@ -1,4 +1,4 @@
-package com.kapstranspvtltd.kaps.activities.pickup_activities;
+package com.kapstranspvtltd.kaps.activities.goods_service_booking_activities;
 
 import android.Manifest;
 import android.content.Intent;
@@ -24,7 +24,6 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.widget.Autocomplete;
-import com.google.android.libraries.places.widget.AutocompleteActivity;
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.databinding.ActivityGoodsBookingNewBinding;

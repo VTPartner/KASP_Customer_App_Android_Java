@@ -1,6 +1,5 @@
 package com.kapstranspvtltd.kaps.cab_customer_app.activities;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -8,21 +7,16 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.app.ProgressDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,13 +38,10 @@ import com.kapstranspvtltd.kaps.activities.models.AllGoodsTypesModel;
 import com.kapstranspvtltd.kaps.activities.models.GuidelineModel;
 import com.kapstranspvtltd.kaps.activities.models.UpgradePrice;
 import com.kapstranspvtltd.kaps.activities.models.VehicleModel;
-import com.kapstranspvtltd.kaps.activities.pickup_activities.BookingReviewScreenActivity;
-import com.kapstranspvtltd.kaps.activities.pickup_activities.CouponCodeActivity;
-import com.kapstranspvtltd.kaps.activities.pickup_activities.SearchingGoodsDriverActivity;
+import com.kapstranspvtltd.kaps.activities.goods_service_booking_activities.CouponCodeActivity;
 import com.kapstranspvtltd.kaps.adapters.GoodsTypeAdapter;
 import com.kapstranspvtltd.kaps.adapters.GuidelinesAdapter;
 import com.kapstranspvtltd.kaps.adapters.VehicleAdapter;
-import com.kapstranspvtltd.kaps.databinding.ActivityBookingReviewScreenBinding;
 import com.kapstranspvtltd.kaps.databinding.ActivityCabBookingReviewBinding;
 import com.kapstranspvtltd.kaps.fcm.AccessToken;
 import com.kapstranspvtltd.kaps.model.Coupon;
@@ -72,7 +63,6 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 public class CabBookingReviewActivity extends BaseActivity implements VehicleAdapter.RecyclerTouchListener {
 

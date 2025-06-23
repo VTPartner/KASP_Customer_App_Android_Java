@@ -1,4 +1,4 @@
-package com.kapstranspvtltd.kaps.activities.pickup_activities;
+package com.kapstranspvtltd.kaps.activities.goods_service_booking_activities;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -32,19 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 
 
-
-
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-
-import android.app.ProgressDialog;
-import android.os.Bundle;
-import android.widget.Toast;
-
-import com.kapstranspvtltd.kaps.R;
-import com.kapstranspvtltd.kaps.activities.models.VehicleModel;
-import com.kapstranspvtltd.kaps.databinding.ActivityAllGoodsVehiclesBinding;
 import com.kapstranspvtltd.kaps.network.VolleySingleton;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.Drop;
@@ -54,8 +41,6 @@ import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 public class AllGoodsVehiclesActivity extends AppCompatActivity implements GoodsVehiclesNewAdapter.OnVehicleSelectedListener {
@@ -251,12 +236,14 @@ public class AllGoodsVehiclesActivity extends AppCompatActivity implements Goods
         try {
             String customerId = preferenceManager.getStringValue("customer_id");
             String fcmToken = preferenceManager.getStringValue("fcm_token");
+            String pincodeId = preferenceManager.getStringValue("pincode_id");
 
 
             String url = APIClient.baseUrl + "get_peak_hour_prices";
             JSONObject jsonBody = new JSONObject();
 
             jsonBody.put("city_id", cityId);
+            jsonBody.put("pincode_id", pincodeId);
             jsonBody.put("customer_id", customerId);
             jsonBody.put("auth", fcmToken);
 

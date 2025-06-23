@@ -1,4 +1,4 @@
-package com.kapstranspvtltd.kaps.activities.pickup_activities;
+package com.kapstranspvtltd.kaps.activities.goods_service_booking_activities;
 
 import android.app.ProgressDialog;
 import android.app.TimePickerDialog;

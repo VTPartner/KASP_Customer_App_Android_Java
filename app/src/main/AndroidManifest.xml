@@ -28,17 +28,18 @@
         android:theme="@style/Theme.packaged.NoActionBar"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+
         <activity
-            android:name=".activities.pickup_activities.EditDropLocationActivity"
+            android:name=".activities.goods_service_booking_activities.EditDropLocationActivity"
             android:exported="false" />
         <activity
             android:name=".common_activities.LocationSearchActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.pickup_activities.GoodsBookingNewActivity"
+            android:name=".activities.goods_service_booking_activities.GoodsBookingNewActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.pickup_activities.AllGoodsVehiclesActivity"
+            android:name=".activities.goods_service_booking_activities.AllGoodsVehiclesActivity"
             android:exported="false" />
         <activity
             android:name=".common_activities.ScheduledBookingsActivity"
@@ -140,7 +141,7 @@
             android:name=".handyman_customer_app.activities.HandymanWorkLocationActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.pickup_activities.CouponCodeActivity"
+            android:name=".activities.goods_service_booking_activities.CouponCodeActivity"
             android:exported="false" />
         <activity
             android:name=".activities.WalletActivity"
@@ -148,24 +149,23 @@
         <activity
             android:name=".activities.CustomerEditProfileActivity"
             android:exported="false" />
-
         <activity
-            android:name=".activities.pickup_activities.WebViewActivity"
+            android:name=".activities.goods_service_booking_activities.WebViewActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.pickup_activities.SearchingGoodsDriverActivity"
+            android:name=".activities.goods_service_booking_activities.SearchingGoodsDriverActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.pickup_activities.BookingReviewScreenActivity"
+            android:name=".activities.goods_service_booking_activities.BookingReviewScreenActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.pickup_activities.ReviewMapActivity"
+            android:name=".activities.goods_service_booking_activities.ReviewMapActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.pickup_activities.GoodsDriverMapDropLocationActivity"
+            android:name=".activities.goods_service_booking_activities.GoodsDriverMapDropLocationActivity"
             android:exported="false" />
         <activity
-            android:name=".activities.pickup_activities.GoodsPickupMapLocationActivity"
+            android:name=".activities.goods_service_booking_activities.GoodsPickupMapLocationActivity"
             android:exported="false" />
         <activity
             android:name=".activities.OrderDetailsScreenActivity"
@@ -226,8 +226,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
-
-
     </application>
 
 </manifest>

@@ -1,4 +1,4 @@
-package com.kapstranspvtltd.kaps.activities.pickup_activities;
+package com.kapstranspvtltd.kaps.activities.goods_service_booking_activities;
 
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 import static com.kapstranspvtltd.kaps.utility.SessionManager.dropList;

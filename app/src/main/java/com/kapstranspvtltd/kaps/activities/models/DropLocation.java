@@ -1,6 +1,25 @@
 package com.kapstranspvtltd.kaps.activities.models;
 
 public class DropLocation {
+
+    private String brandName;
+    public String getBrandName() {
+        return brandName;
+    }
+
+    public void setBrandName(String brandName) {
+        this.brandName = brandName;
+    }
+    private String placeId;
+
+    // Add getter and setter for placeId
+    public String getPlaceId() {
+        return placeId;
+    }
+
+    public void setPlaceId(String placeId) {
+        this.placeId = placeId;
+    }
     public String getAddress() {
         return address;
     }

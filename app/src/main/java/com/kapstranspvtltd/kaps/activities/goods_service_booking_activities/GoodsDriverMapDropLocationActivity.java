@@ -1,4 +1,4 @@
-package com.kapstranspvtltd.kaps.activities.pickup_activities;
+package com.kapstranspvtltd.kaps.activities.goods_service_booking_activities;
 
 import static android.os.Build.VERSION.SDK_INT;
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
@@ -410,10 +410,12 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
                                     // Get the city_id and outstation_distance from the first result
                                     JSONObject result = results.getJSONObject(0);
                                     String cityId = result.getString("city_id");
+                                    String pincodeId = result.getString("pincode_id");
                                     double outstationDistance = result.getDouble("outstation_distance");
                                     System.out.println("cityID :"+cityId+" outstationDistance::"+outstationDistance);
                                     // Store both values
                                     preferenceManager.saveStringValue("city_id", cityId);
+                                    preferenceManager.saveStringValue("pincode_id", pincodeId);
                                     preferenceManager.saveFloatValue("outstation_distance", (float) outstationDistance);
 
                                   proceedToNextScreen = true;

@@ -1,7 +1,6 @@
-package com.kapstranspvtltd.kaps.activities.pickup_activities;
+package com.kapstranspvtltd.kaps.activities.goods_service_booking_activities;
 
 import static com.kapstranspvtltd.kaps.utility.SessionManager.dropList;
-import static com.kapstranspvtltd.kaps.utility.Utility.isSinglePoint;
 
 import android.content.Context;
 import android.content.Intent;
@@ -23,7 +22,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -324,6 +322,12 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
 
     private void setupClickListeners() {
 
+        binding.txtPickaddress.setOnClickListener(v->{
+            Glb.showPickup = true;
+            startActivity(new Intent(this, GoodsPickupMapLocationActivity.class));
+            finish();
+            finish();
+        });
 //        binding.btnProce.setOnClickListener(v -> startActivity(new Intent(this, BookingReviewScreenActivity.class)
         binding.btnProce.setOnClickListener(v ->{
 
@@ -637,6 +641,18 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
             Drop item = dropList.get(position);
             holder.binding.txtDropaddress.setText(item.getAddress());
             holder.binding.imgDelete.setVisibility(position == 0 ? View.GONE : View.VISIBLE);
+
+            holder.binding.imgEdit.setOnClickListener(v -> {
+                // Save the position being edited
+                Glb.editingDropPosition = position;
+
+                // Start the drop location activity with existing data
+                Intent intent = new Intent(v.getContext(), GoodsPickupMapLocationActivity.class);
+                intent.putExtra("isEditing", true);
+                intent.putExtra("editDrop", item);
+                intent.putExtra("editPosition", position);
+                v.getContext().startActivity(intent);
+            });
 
             holder.binding.imgDelete.setOnClickListener(v -> {
                 if (position != 0) {

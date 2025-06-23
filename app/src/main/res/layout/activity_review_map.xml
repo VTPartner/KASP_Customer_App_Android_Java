@@ -86,6 +86,8 @@
                             android:maxLines="2"
                             android:padding="5dp"
                             android:textColor="@color/black"
+                            android:drawableEnd="@drawable/ic_edit"
+                            android:drawableTint="@color/grey"
                             android:textSize="12dp" />
                     </LinearLayout>
 

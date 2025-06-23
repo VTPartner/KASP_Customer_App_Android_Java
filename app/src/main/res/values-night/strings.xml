@@ -144,6 +144,9 @@
     <string name="select_vehicle">Select Vehicle</string>
     <string name="searching_agent">Searching for Agent ...</string>
     <string name="work_address">Work Address</string>
-
+    <string name="error_max_drops">Maximum %d drop locations allowed</string>
+    <string name="error_contact_details">Please provide contact details</string>
+    <string name="error_permission_denied">Permission denied</string>
+    <string name="drop_number">1</string>
 
 </resources>

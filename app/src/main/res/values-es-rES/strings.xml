@@ -2,4 +2,5 @@
 <resources>
     <string name="searching_agent">Searching for Agent ...</string>
     <string name="work_address">Work Address</string>
+    <string name="drop_number">1</string>
 </resources>

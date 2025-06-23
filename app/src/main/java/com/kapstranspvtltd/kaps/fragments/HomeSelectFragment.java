@@ -14,7 +14,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
@@ -39,8 +38,7 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import com.kapstranspvtltd.kaps.activities.OngoingGoodsDetailActivity;
 import com.kapstranspvtltd.kaps.activities.models.AllServicesHome;
 import com.kapstranspvtltd.kaps.activities.models.SliderModel;
-import com.kapstranspvtltd.kaps.activities.pickup_activities.GoodsBookingNewActivity;
-import com.kapstranspvtltd.kaps.activities.pickup_activities.GoodsPickupMapLocationActivity;
+import com.kapstranspvtltd.kaps.activities.goods_service_booking_activities.GoodsPickupMapLocationActivity;
 import com.kapstranspvtltd.kaps.adapters.OfferSliderAdapter;
 import com.kapstranspvtltd.kaps.adapters.ServiceAdapter;
 import com.kapstranspvtltd.kaps.cab_customer_app.activities.CabBookingPickupLocationActivity;
@@ -62,7 +60,6 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -741,7 +738,7 @@ public class HomeSelectFragment extends Fragment {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        if(binding.txtAddress !=null && !addressText.isEmpty())
+        if( addressText != null && binding.txtAddress !=null && !addressText.isEmpty())
             binding.txtAddress.setText(addressText);
     }
 

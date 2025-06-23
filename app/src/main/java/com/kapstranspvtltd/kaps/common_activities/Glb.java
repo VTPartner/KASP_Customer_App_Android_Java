@@ -28,4 +28,5 @@ public class Glb {
 
     public static VehicleModel selectedVehicle = null;
     public static boolean showPickup = false;
+    public static int editingDropPosition  =0;
 }

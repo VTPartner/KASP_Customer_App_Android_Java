@@ -1,4 +1,4 @@
-package com.kapstranspvtltd.kaps.activities.pickup_activities;
+package com.kapstranspvtltd.kaps.activities.goods_service_booking_activities;
 
 import static android.os.Build.VERSION.SDK_INT;
 
@@ -21,7 +21,6 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -39,9 +38,7 @@ import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.widget.Autocomplete;
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
 import com.kapstranspvtltd.kaps.R;
-import com.kapstranspvtltd.kaps.activities.OngoingGoodsDetailActivity;
 import com.kapstranspvtltd.kaps.databinding.ActivityEditDropLocationBinding;
-import com.kapstranspvtltd.kaps.polygon.Point;
 import com.kapstranspvtltd.kaps.utility.Utility;
 
 import java.io.IOException;

@@ -6,12 +6,10 @@ import androidx.core.content.FileProvider;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.RatingBar;
@@ -32,12 +30,10 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
-import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
-import com.google.maps.android.PolyUtil;
 import com.kapstranspvtltd.kaps.R;
-import com.kapstranspvtltd.kaps.activities.pickup_activities.WebViewActivity;
+import com.kapstranspvtltd.kaps.activities.goods_service_booking_activities.WebViewActivity;
 import com.kapstranspvtltd.kaps.common_activities.models.ServiceOrderDetails;
 
 import com.kapstranspvtltd.kaps.databinding.ActivityHandymanOrderDetailsBinding;
@@ -47,7 +43,6 @@ import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.CustPrograssbar;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -56,7 +51,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 

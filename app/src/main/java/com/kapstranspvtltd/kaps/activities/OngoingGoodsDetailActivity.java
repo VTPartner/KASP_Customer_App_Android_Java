@@ -1,13 +1,11 @@
 package com.kapstranspvtltd.kaps.activities;
 
 import static android.content.ContentValues.TAG;
-import static android.os.Build.VERSION.SDK_INT;
 
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 import static com.kapstranspvtltd.kaps.retrofit.APIClient.resizeBitmap;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -20,11 +18,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
-import android.location.Address;
-import android.location.Criteria;
-import android.location.Geocoder;
 import android.location.Location;
-import android.location.LocationManager;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -39,7 +33,6 @@ import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -68,7 +61,6 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
@@ -80,11 +72,6 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.android.gms.tasks.Task;
-import com.google.android.libraries.places.api.Places;
-import com.google.android.libraries.places.api.model.Place;
-import com.google.android.libraries.places.widget.Autocomplete;
-import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -98,7 +85,7 @@ import com.google.maps.model.TravelMode;
 import com.kapstranspvtltd.kaps.activities.models.BookingDetails;
 import com.kapstranspvtltd.kaps.activities.models.CancelReason;
 import com.kapstranspvtltd.kaps.activities.models.DropLocation;
-import com.kapstranspvtltd.kaps.activities.pickup_activities.EditDropLocationActivity;
+import com.kapstranspvtltd.kaps.activities.goods_service_booking_activities.EditDropLocationActivity;
 import com.kapstranspvtltd.kaps.adapters.CancelReasonAdapter;
 import com.kapstranspvtltd.kaps.fcm.AccessToken;
 import com.kapstranspvtltd.kaps.network.VolleySingleton;
@@ -109,7 +96,6 @@ import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.databinding.ActivityOngoingGoodsDetailBinding;
 import com.kapstranspvtltd.kaps.databinding.DialogPaymentDetailsBinding;
 import com.kapstranspvtltd.kaps.utility.UnloadingTimerManager;
-import com.kapstranspvtltd.kaps.utility.Utility;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -121,14 +107,12 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.function.Consumer;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -168,9 +152,9 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
         binding = ActivityOngoingGoodsDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-//        Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab);
-//        Bitmap smallMarker = resizeBitmap(original, 100, 100); // Resize to 100x100
-//        driverIcon = BitmapDescriptorFactory.fromBitmap(smallMarker);
+        Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab);
+        Bitmap smallMarker = resizeBitmap(original, 100, 100); // Resize to 100x100
+        driverIcon = BitmapDescriptorFactory.fromBitmap(smallMarker);
 
 
         initGeoApiContext();
@@ -552,8 +536,8 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
         dialogBinding.amountValue.setText("₹" + Math.round(totalAmount));
 
         dialogBinding.cancelButton.setOnClickListener(v -> dialog.dismiss());
-
-        dialog.show();
+        if(dialog!=null)
+            dialog.show();
     }
 
 
@@ -660,7 +644,7 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
     private BookingDetails parseBookingDetails(JSONObject result) throws JSONException {
         BookingDetails details = new BookingDetails();
         String bookingStatus1 = result.optString("booking_status");
-        if(!bookingStatus1.equalsIgnoreCase("Driver Accepted") || !bookingStatus1.equalsIgnoreCase("Driver Arrived") || !bookingStatus1.equalsIgnoreCase("Cancelled")){
+        if(!bookingStatus1.equalsIgnoreCase("Driver Accepted") || !bookingStatus1.equalsIgnoreCase("Driver Arrived") || !bookingStatus1.equalsIgnoreCase("Cancelled") || !bookingStatus1.equalsIgnoreCase("Otp Verified")){
             binding.shareLocationBtn.setVisibility(View.VISIBLE);
         }
 
@@ -1052,7 +1036,7 @@ String currentApiStatus = bookingDetails.getBookingStatus();
                 return getResources().getColor(R.color.blue);
             case "Driver Arrived":
                 return getResources().getColor(R.color.orange);
-            case "OTP Verified":
+            case "Otp Verified":
                 return getResources().getColor(R.color.indigo);
             case "Start Trip":
                 return getResources().getColor(R.color.green);

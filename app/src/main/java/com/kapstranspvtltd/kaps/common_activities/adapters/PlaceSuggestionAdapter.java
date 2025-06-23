@@ -23,6 +23,14 @@ public class PlaceSuggestionAdapter extends RecyclerView.Adapter<PlaceSuggestion
         void onSuggestionClick(AutocompletePrediction prediction);
     }
 
+    public void updatePredictions(List<AutocompletePrediction> newPredictions) {
+        this.predictions.clear();
+        if (newPredictions != null) {
+            this.predictions.addAll(newPredictions);
+        }
+        notifyDataSetChanged();
+    }
+
     public PlaceSuggestionAdapter(OnSuggestionClickListener listener) {
         this.predictions = new ArrayList<>();
         this.listener = listener;

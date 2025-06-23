@@ -29,10 +29,21 @@
             android:layout_marginStart="5dp"
             android:background="@drawable/box"
             android:maxLines="2"
-            android:drawableRight="@drawable/sixdot"
+
             android:padding="5dp"
             android:textColor="@color/black"
             android:textSize="12dp" />
+
+        <ImageView
+            android:id="@+id/img_edit"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_edit"
+            android:layout_marginEnd="8dp"
+            android:visibility="gone"
+            android:tint="@color/grey" />
+
         <ImageView
             android:id="@+id/img_delete"
             android:layout_width="wrap_content"

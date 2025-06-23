@@ -1,4 +1,4 @@
-package com.kapstranspvtltd.kaps.activities.pickup_activities;
+package com.kapstranspvtltd.kaps.activities.goods_service_booking_activities;
 
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 import static com.kapstranspvtltd.kaps.utility.SessionManager.dropList;
@@ -66,7 +66,6 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.places.api.Places;
-import com.google.android.libraries.places.api.model.AutocompletePrediction;
 import com.google.android.libraries.places.api.model.AutocompleteSessionToken;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.api.net.FetchPlaceRequest;
@@ -611,10 +610,12 @@ public class GoodsPickupMapLocationActivity extends BaseActivity implements OnMa
                                     // Get the city_id and outstation_distance from the first result
                                     JSONObject result = results.getJSONObject(0);
                                     String cityId = result.getString("city_id");
+                                    String pincodeId = result.getString("pincode_id");
                                     double outstationDistance = result.getDouble("outstation_distance");
                                     System.out.println("cityID :"+cityId+" outstationDistance::"+outstationDistance);
                                     // Store both values
                                     preferenceManager.saveStringValue("city_id", cityId);
+                                    preferenceManager.saveStringValue("pincode_id", pincodeId);
                                     preferenceManager.saveFloatValue("outstation_distance", (float) outstationDistance);
 
                                     proceedToNextScreen(name, mobile);
