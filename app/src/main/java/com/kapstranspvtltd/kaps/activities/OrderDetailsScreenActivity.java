@@ -440,6 +440,8 @@ public class OrderDetailsScreenActivity extends AppCompatActivity implements OnM
 
     private void updateUI() {
         if (orderDetails == null) return;
+        binding.txtWalletAmt.setText("₹" + orderDetails.getWalletAmount());
+        binding.txtCoinsRvd.setText("\uD83C\uDF15" + orderDetails.getCoinGiven());
 
         binding.toolbarTitle.setText("Order #" + orderDetails.getOrderId());
         binding.totaldistance.setText("Distance: "+orderDetails.getDistance()+"km");

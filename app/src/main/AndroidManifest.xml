@@ -28,7 +28,21 @@
         android:theme="@style/Theme.packaged.NoActionBar"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
-
+        <activity
+            android:name=".coins.CoinTransferToWalletActivity"
+            android:exported="false" />
+        <activity
+            android:name=".coins.BottomSheets.FilterBottomSheet"
+            android:exported="false" />
+        <activity
+            android:name=".coins.BottomSheets.HowToEarnCoinsBottomSheet"
+            android:exported="false" />
+        <activity
+            android:name=".coins.CoinsHistoryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".coins.CoinsHomeScreenActivity"
+            android:exported="false" />
         <activity
             android:name=".activities.goods_service_booking_activities.EditDropLocationActivity"
             android:exported="false" />

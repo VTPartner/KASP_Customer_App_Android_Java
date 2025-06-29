@@ -180,6 +180,8 @@
                     </LinearLayout>
                 </LinearLayout>
 
+
+
                 <!-- Apply Coupon Section -->
                 <LinearLayout
                     android:id="@+id/applyCouponLayout"
@@ -208,70 +210,88 @@
             </LinearLayout>
 
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="10dp"
-                android:layout_marginTop="5dp"
-                android:layout_marginBottom="5dp"
-                android:background="@color/colorgrey1" />
 
+            <!-- Coin Rewards Card Layout -->
             <LinearLayout
+                android:id="@+id/coinRewardCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Booking Type"
-                    android:textColor="@color/black"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
 
-                <RadioGroup
-                    android:id="@+id/bookingTypeGroup"
+                android:layout_marginTop="10dp"
+                android:elevation="2dp">
+                <View
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
-
-                    <RadioButton
-                        android:id="@+id/rbNow"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:checked="true"
-                        android:text="Book Now" />
-
-                    <RadioButton
-                        android:id="@+id/rbSchedule"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:text="Schedule" />
-                </RadioGroup>
-
+                    android:layout_height="10dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@color/colorgrey1" />
+                <!-- Top Row -->
                 <LinearLayout
-                    android:id="@+id/scheduleTimeLayout"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
                     android:visibility="gone"
-                    android:orientation="horizontal">
+                    android:layout_height="48dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/cash"
+                        android:contentDescription="Coin"
+                        app:tint="@color/coin_gold" />
 
                     <TextView
-                        android:id="@+id/selectedTimeText"
-                        android:layout_width="0dp"
+                        android:id="@+id/txtMinCoinsRequired"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:padding="12dp"
-                        android:background="@drawable/box"
-                        android:drawableEnd="@drawable/ic_time"
-                        android:drawablePadding="8dp"
-                        android:text="Select Time"
-                        android:textColor="@color/black" />
+                        android:text="Minimum 25 coins required"
+                        android:textColor="@color/coin_grey"
+                        android:textSize="15sp"
+                        android:layout_marginStart="8dp"
+                        android:fontFamily="sans-serif-medium"
+                        />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"/>
+
+                    <TextView
+                        android:id="@+id/txtUseCoins"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Use Coins"
+                        android:textColor="@color/coin_grey"
+                        android:textSize="15sp"
+                        android:fontFamily="sans-serif-medium"
+                        />
+                </LinearLayout>
+
+                <!-- Purple Bottom Bar -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_purple_bottom"
+                    android:gravity="center"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp">
+
+                    <TextView
+                        android:id="@+id/txtCoinRewardPoints"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="You'll get 2 coins on this order ✨"
+                        android:textColor="@android:color/white"
+                        android:textSize="15sp"
+                        android:fontFamily="sans-serif-medium"
+                        />
                 </LinearLayout>
             </LinearLayout>
+
+
             <View
             android:layout_width="match_parent"
             android:layout_height="10dp"
@@ -481,6 +501,9 @@
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
+
+
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="10dp"
@@ -661,6 +684,72 @@ android:layout_marginTop="5dp"
                         android:textColor="@color/apptextcolor" />
                 </LinearLayout>
             </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="10dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
+        android:background="@color/colorgrey1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Booking Type"
+            android:textColor="@color/black"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/bookingTypeGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/rbNow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="Book Now" />
+
+            <RadioButton
+                android:id="@+id/rbSchedule"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="Schedule" />
+        </RadioGroup>
+
+        <LinearLayout
+            android:id="@+id/scheduleTimeLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/selectedTimeText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:padding="12dp"
+                android:background="@drawable/box"
+                android:drawableEnd="@drawable/ic_time"
+                android:drawablePadding="8dp"
+                android:text="Select Time"
+                android:textColor="@color/black" />
+        </LinearLayout>
+    </LinearLayout>
+
     <View
         android:layout_width="match_parent"
         android:layout_height="10dp"
@@ -749,6 +838,7 @@ android:layout_marginTop="5dp"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
+
                     android:layout_marginBottom="12dp">
 
                     <LinearLayout
@@ -760,7 +850,7 @@ android:layout_marginTop="5dp"
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Payments"
+                            android:text="Total Payment"
                             android:textColor="@color/black"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -768,8 +858,11 @@ android:layout_marginTop="5dp"
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Post Delivery"
+                            android:text="Select Payment Method"
+                            android:textAlignment="center"
+                            android:drawableEnd="@drawable/ic_chevron_right"
                             android:textColor="@color/black"
+                            android:visibility="gone"
                             android:textSize="12sp" />
                     </LinearLayout>
 
@@ -796,7 +889,7 @@ android:layout_marginTop="5dp"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:background="@drawable/rounded_button"
-                    android:text="BOOK"
+                    android:text="PROCEED"
                     android:textColor="@color/white"
                     android:textSize="16sp" />
             </LinearLayout>

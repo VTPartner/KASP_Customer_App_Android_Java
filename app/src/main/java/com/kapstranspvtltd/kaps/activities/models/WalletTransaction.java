@@ -4,6 +4,16 @@ public class WalletTransaction {
     private String transactionId;
     private String type;
     private double amount;
+
+    public double getTransactionTime() {
+        return transactionTime;
+    }
+
+    public void setTransactionTime(double transactionTime) {
+        this.transactionTime = transactionTime;
+    }
+
+    private double transactionTime;
     private String status;
     private String date;
     private String remarks;
@@ -76,7 +86,7 @@ public class WalletTransaction {
     }
 
     public WalletTransaction(String transactionId, String type, double amount,
-                             String status, String date, String remarks, String paymentMode,String razorpayId) {
+                             String status, String date, String remarks, String paymentMode,String razorpayId,double transactionTime) {
         this.transactionId = transactionId;
         this.type = type;
         this.amount = amount;
@@ -85,6 +95,7 @@ public class WalletTransaction {
         this.remarks = remarks;
         this.paymentMode = paymentMode;
         this.razorPayID = razorpayId;
+        this.transactionTime = transactionTime;
     }
 
     // Add getters

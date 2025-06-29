@@ -34,4 +34,7 @@
     <color name="light_gray">#F5F5F5</color>
     <color name="divider">#E0E0E0</color>
     <color name="yellow">#FFC107</color>
+    <color name="coin_grey">#B0B0B0</color>
+    <color name="coin_purple">#5B2EFF</color>
+    <color name="coin_gold">#FFC107</color>
 </resources>

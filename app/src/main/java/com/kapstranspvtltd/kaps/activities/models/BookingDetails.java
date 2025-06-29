@@ -45,6 +45,26 @@ public class BookingDetails {
 
     private double penaltyAmount;
 
+    public double getWalletAmount() {
+        return walletAmount;
+    }
+
+    public void setWalletAmount(double walletAmount) {
+        this.walletAmount = walletAmount;
+    }
+
+    public double getCoinsGiven() {
+        return coinsGiven;
+    }
+
+    public void setCoinsGiven(int coinsGiven) {
+        this.coinsGiven = coinsGiven;
+    }
+
+    private double walletAmount;
+
+    private int coinsGiven;
+
     public double getPenaltyChargeAmount() {
         return penaltyChargeAmount;
     }

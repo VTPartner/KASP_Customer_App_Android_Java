@@ -590,6 +590,56 @@ android:textStyle="bold"
                         android:gravity="center|end"
                         android:text="" />
                 </LinearLayout>
+
+                <LinearLayout
+
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="start"
+                    android:padding="5dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="start"
+                        android:text="Wallet Amount"
+                        android:textColor="@color/colorgrey3" />
+
+                    <TextView
+                        android:id="@+id/txt_wallet_amt"
+                        style="@style/Font"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center|end"
+                        android:text="" />
+                </LinearLayout>
+
+                <LinearLayout
+
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="start"
+                    android:padding="5dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="start"
+                        android:text="Coins Received"
+                        android:textColor="@color/colorgrey3" />
+
+                    <TextView
+                        android:id="@+id/txt_coins_rvd"
+                        style="@style/Font"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center|end"
+                        android:text="" />
+                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout

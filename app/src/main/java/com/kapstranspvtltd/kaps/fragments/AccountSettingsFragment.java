@@ -15,6 +15,7 @@ import com.kapstranspvtltd.kaps.activities.CustomerEditProfileActivity;
 import com.kapstranspvtltd.kaps.activities.HomeActivity;
 import com.kapstranspvtltd.kaps.activities.LoginActivity;
 import com.kapstranspvtltd.kaps.activities.WalletActivity;
+import com.kapstranspvtltd.kaps.coins.CoinsHomeScreenActivity;
 import com.kapstranspvtltd.kaps.common_activities.ScheduledBookingsActivity;
 import com.kapstranspvtltd.kaps.driver_customer_app.activities.bookings.AllDriverBookingsAndOrdersActivity;
 import com.kapstranspvtltd.kaps.handyman_customer_app.activities.bookings.AllHandymanBookingsAndOrdersActivity;
@@ -66,8 +67,14 @@ public class AccountSettingsFragment extends BaseFragment {
         binding.txtJcbCraneRide.setOnClickListener(v->goToAllJcbCraneRidesPage());
         binding.txtHandymanRides.setOnClickListener(v->goToAllHandymanRidesPage());
         binding.enjoyearnings.setOnClickListener(v->goToWalletPage());
-        binding.placeTrip.setOnClickListener(v->goToHomePage());
+        binding.rewardCoins.setOnClickListener(v->goToCoinHomePage());
         binding.inviteFriends.setOnClickListener(v->openToShareAppInviteLink());
+    }
+
+    private void goToCoinHomePage() {
+        Intent intent = new Intent(getActivity(), CoinsHomeScreenActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK );
+        startActivity(intent);
     }
 
     private void goToAllScheduledPage() {

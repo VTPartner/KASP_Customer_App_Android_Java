@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/earn_coins_bottomsheet_lyt"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottomsheet_blue"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingBottom="0dp">
+
+  <ScrollView
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content">
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:layout_marginBottom="10dp">
+          <!-- Title and Indicator -->
+          <TextView
+              android:id="@+id/tv_title"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:text="How to earn coins ?"
+              android:textColor="#FFF"
+              android:textSize="20sp"
+              android:textStyle="bold"
+              android:layout_marginTop="24dp"
+              android:layout_marginLeft="24dp"
+              android:layout_marginRight="24dp"/>
+
+          <com.google.android.material.tabs.TabLayout
+              android:id="@+id/tab_indicator"
+              android:layout_width="match_parent"
+              android:layout_height="4dp"
+              app:tabIndicatorColor="#FFF"
+              app:tabSelectedTextColor="#FFF"
+              app:tabIndicatorFullWidth="false"
+              app:tabBackground="@drawable/bg_indicator_tab"
+              app:tabRippleColor="@android:color/transparent"
+              android:layout_marginTop="12dp"
+              android:layout_marginLeft="24dp"
+              android:layout_marginRight="24dp"
+
+              />
+
+          <!-- ViewPager for pages -->
+          <androidx.viewpager2.widget.ViewPager2
+              android:id="@+id/viewpager"
+              android:layout_width="match_parent"
+              android:layout_height="0dp"
+              android:layout_marginTop="24dp"
+              android:layout_marginBottom="24dp"
+              android:layout_weight="1"/>
+
+      </LinearLayout>
+  </ScrollView>
+</LinearLayout>

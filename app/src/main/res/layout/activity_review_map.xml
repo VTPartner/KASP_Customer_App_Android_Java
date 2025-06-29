@@ -86,7 +86,7 @@
                             android:maxLines="2"
                             android:padding="5dp"
                             android:textColor="@color/black"
-                            android:drawableEnd="@drawable/ic_edit"
+
                             android:drawableTint="@color/grey"
                             android:textSize="12dp" />
                     </LinearLayout>
@@ -123,6 +123,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:gravity="center"
+                    android:visibility="gone"
                     android:orientation="horizontal">
 
                     <TextView
@@ -133,7 +134,7 @@
                         android:drawableLeft="@drawable/ic_add_circle"
                         android:drawablePadding="5dp"
                         android:gravity="center"
-                        android:text="@string/add_new_stop"
+                        android:text="Add Stops"
                         android:textColor="@color/colorPrimary"
                         android:textStyle="bold" />
                 </LinearLayout>

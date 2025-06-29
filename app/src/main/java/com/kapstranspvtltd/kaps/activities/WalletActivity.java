@@ -350,7 +350,8 @@ public class WalletActivity extends AppCompatActivity implements PaymentResultLi
                     transaction.getString("transaction_date"),
                     transaction.getString("remarks"),
                     transaction.getString("payment_mode"),
-                    transaction.getString("razorpay_payment_id")
+                    transaction.getString("razorpay_payment_id"),
+                    transaction.getDouble("transaction_time")
             ));
         }
 

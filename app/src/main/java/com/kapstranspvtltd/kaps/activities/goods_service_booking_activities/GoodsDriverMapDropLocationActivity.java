@@ -78,6 +78,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.kapstranspvtltd.kaps.activities.BaseActivity;
+import com.kapstranspvtltd.kaps.adapters.DropLocationAdapter;
 import com.kapstranspvtltd.kaps.common_activities.Glb;
 import com.kapstranspvtltd.kaps.common_activities.adapters.PlaceSuggestionAdapter;
 import com.kapstranspvtltd.kaps.common_activities.adapters.RecentSearchAdapter;
@@ -110,7 +111,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 public class GoodsDriverMapDropLocationActivity extends BaseActivity implements OnMapReadyCallback {
-    private static final int MAX_DROP_LOCATIONS = 3;
+    private static  int MAX_DROP_LOCATIONS = 3;
     private ActivityGoodsDriverMapDropLocationBinding binding;
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationProviderClient;
@@ -181,6 +182,13 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
 
     boolean proceedToNextScreen = false,showRecentSearchAddress = false;
     private PlacesClient placesClient;
+
+    private static final int REQUEST_EDIT_DROP = 1002;
+    private static final int REQUEST_SEARCH_DROP = 1003;
+    private DropLocationAdapter dropLocationAdapter;
+    private int dropIndex =0;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -200,6 +208,24 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
             return;
         }
 
+        // Initialize dropList with one empty Drop if empty
+        if (dropList == null) {
+            dropList = new ArrayList<>();
+        }
+        if (dropList.isEmpty()) {
+            dropList.add(new Drop());
+        }
+
+        String dropsValue = preferenceManager.getStringValue("multiple_drops", "3");
+
+        try {
+            MAX_DROP_LOCATIONS = Integer.parseInt(dropsValue);
+        } catch (NumberFormatException e) {
+            MAX_DROP_LOCATIONS = 3; // fallback value
+        }
+
+        setupDropRecycler();
+
 
         checkPincodeAndShowDialog(pickup.getLat(),pickup.getLog());
         getSenderDetails();
@@ -207,8 +233,96 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
         setupClickListeners();
 
         setupMap();
+        showCustomPlacesSearch();
 
     }
+
+    private void setupDropRecycler() {
+        dropLocationAdapter = new DropLocationAdapter(dropList, MAX_DROP_LOCATIONS, new DropLocationAdapter.DropActionListener() {
+            @Override
+            public void onEdit(int position) {
+                // Open edit dialog/activity for this drop
+                dropIndex = position;
+                dropLocationAdapter.setEditingIndex(position);
+                int dropCurrentIndex = dropIndex + 1;
+                if(dropIndex>0)
+                    binding.dropmaplocation.setText("Drop Location "+dropCurrentIndex);
+                else
+                    binding.dropmaplocation.setText("Drop Location");
+                Toast.makeText(GoodsDriverMapDropLocationActivity.this, "Editing Drop " + (position + 1), Toast.LENGTH_SHORT).show();
+                editDrop(position);
+            }
+            @Override
+            public void onSearch(int position) {
+                // Open search for this drop
+                dropIndex = position;
+                searchDrop(position);
+            }
+
+            @Override
+            public void onRemove(int position) {
+                removeDrop(position);
+            }
+
+            @Override
+            public void onAddStop() {
+                // Add new drop
+                addNewDrop();
+            }
+        });
+        binding.recyclerDropLocations.setLayoutManager(new LinearLayoutManager(this));
+        binding.recyclerDropLocations.setAdapter(dropLocationAdapter);
+    }
+
+    private void removeDrop(int position) {
+        /*if (position == 0) return; // Don't remove first drop
+        dropList.remove(position);
+        dropLocationAdapter.setEditingIndex(-1);
+        dropLocationAdapter.notifyDataSetChanged();*/
+
+
+            if (position == 0) return; // Don't remove first drop
+            dropList.remove(position);
+            dropLocationAdapter.setEditingIndex(-1);
+            dropLocationAdapter.notifyDataSetChanged();
+
+            // Update dropIndex to a valid value
+            if (dropIndex >= dropList.size()) {
+                dropIndex = dropList.size() - 1;
+            }
+            if (dropIndex < 0) dropIndex = 0;
+
+    }
+
+    private void editDrop(int position) {
+        dropIndex = position;
+        showCustomPlacesSearch();
+        // Show dialog or activity to edit drop at position
+        // After editing, update dropList and notify adapter
+        // Example: open a dialog, on result:
+        // dropList.set(position, updatedDrop);
+        // dropLocationAdapter.notifyItemChanged(position);
+    }
+
+    private void searchDrop(int position) {
+        // Show place search for this drop
+        // After selecting, update dropList and notify adapter
+        dropIndex = position;
+        showCustomPlacesSearch();
+//         dropList.get(position).setAddress(newAddress);
+        // dropLocationAdapter.notifyItemChanged(position);
+    }
+
+    private void addNewDrop() {
+        Glb.addStopClicked = true;
+        if (dropList.size() >= MAX_DROP_LOCATIONS) {
+            showError("Maximum " + MAX_DROP_LOCATIONS + " drop locations allowed");
+            return;
+        }
+        dropList.add(new Drop());
+        dropLocationAdapter.notifyDataSetChanged(); // Use this instead of notifyItemInserted
+    }
+
 
     private void getSenderDetails() {
         String customerName = preferenceManager.getStringValue("customer_name");
@@ -244,8 +358,9 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
             Toast.makeText(this,"Please re-confirm your pickup location",Toast.LENGTH_LONG).show();
             return;
         }else{
-            String senderDetails = senderName+"-"+senderNumber+"\n"+address;
-            binding.pickupLocation.setText(senderDetails);
+            String senderDetails = senderName+" . "+senderNumber;
+            binding.txtSenderDetails.setText(senderDetails);
+            binding.pickupLocation.setText(address);
         }
 //        user = sessionManager.getUserDetails();
         fusedLocationProviderClient = getFusedLocationProviderClient(this);
@@ -272,15 +387,15 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
         };
 
         binding.imgBack.setOnClickListener(singleClickListener);
-        binding.edSearch.setOnClickListener(singleClickListener);
+//        binding.edSearch.setOnClickListener(singleClickListener);
         binding.btnSend.setOnClickListener(singleClickListener);
         binding.imgCurrunt.setOnClickListener(singleClickListener);
         binding.editPickupLocation.setOnClickListener(singleClickListener);
-        binding.editDropLocation.setOnClickListener(singleClickListener);
+//        binding.editDropLocation.setOnClickListener(singleClickListener);
 
         // Make search EditText more responsive
-        binding.edSearch.setFocusable(false);
-        binding.edSearch.setClickable(true);
+//        binding.edSearch.setFocusable(false);
+//        binding.edSearch.setClickable(true);
     }
 
     private void handleClick(View v) {
@@ -342,7 +457,7 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
     private void launchPlacesAutocomplete() {
         try {
             // Disable the search view temporarily to prevent double clicks
-            binding.edSearch.setEnabled(false);
+//            binding.edSearch.setEnabled(false);
 
             Autocomplete.IntentBuilder builder = new Autocomplete.IntentBuilder(
                     AutocompleteActivityMode.FULLSCREEN,
@@ -352,11 +467,11 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
             launcher.launch(intent);
 
             // Re-enable after a delay
-            binding.edSearch.postDelayed(() ->
-                    binding.edSearch.setEnabled(true), 1000);
+//            binding.edSearch.postDelayed(() ->
+//                    binding.edSearch.setEnabled(true), 1000);
         } catch (Exception e) {
             Log.e("Places", "Error launching autocomplete: " + e.getMessage());
-            binding.edSearch.setEnabled(true);
+//            binding.edSearch.setEnabled(true);
         }
     }
 
@@ -501,7 +616,136 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
     }
 
 
+    private boolean isValidIndianMobile(String mobile) {
+        // Remove spaces and dashes
+        mobile = mobile.replaceAll("[\\s\\-]", "");
+
+        // +91XXXXXXXXXX
+        if (mobile.startsWith("+91") && mobile.length() == 13) {
+            mobile = mobile.substring(3);
+        } else if (mobile.startsWith("91") && mobile.length() == 12) {
+            mobile = mobile.substring(2);
+        }
+
+        // Now mobile should be 10 digits and start with 6-9
+        return mobile.matches("^[6-9]\\d{9}$");
+    }
+
+    private void showToastError(String message) {
+        Toast.makeText(this,message,Toast.LENGTH_SHORT).show();
+    }
     private void showBottomConfirmDialog() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheetView = getLayoutInflater().inflate(R.layout.customeconfirmdetails, null);
+        dialog.setContentView(sheetView);
+        String fulladdress = "";
+        if (addressBundle != null)
+            fulladdress = addressBundle.getString("drop_fulladdress");
+
+        TextView pickupLabel = sheetView.findViewById(R.id.labelPickup);
+        TextView pickupAddress = sheetView.findViewById(R.id.confirm_pickaddress);
+
+        TextView title = sheetView.findViewById(R.id.textLabel);
+        CheckBox chUser = sheetView.findViewById(R.id.ch_user);
+        edName = sheetView.findViewById(R.id.ed_name);
+        edMobile = sheetView.findViewById(R.id.ed_mobile);
+        TextView btnConfirm = sheetView.findViewById(R.id.btn_send);
+        LinearLayout contactLyt = sheetView.findViewById(R.id.contactLyt);
+        ImageButton btnContacts = sheetView.findViewById(R.id.btnContacts);
+        btnContacts.setOnClickListener(v -> checkContactPermission());
+
+        if (cabService) {
+            contactLyt.setVisibility(View.GONE);
+            title.setVisibility(View.GONE);
+            chUser.setVisibility(View.GONE);
+        }
+
+        pickupAddress.setText(fulladdress);
+        int dropCurrentIndex = dropIndex + 1;
+        if(dropIndex>0)
+            pickupLabel.setText("Drop Location "+dropCurrentIndex);
+        else
+            pickupLabel.setText("Drop Location ");
+
+        if (dropIndex < dropList.size()) {
+            Drop drop = dropList.get(dropIndex);
+            if (drop.getRname() != null) edName.setText(drop.getRname());
+            if (drop.getRmobile() != null) edMobile.setText(drop.getRmobile());
+        }
+
+        chUser.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                String customer_name = preferenceManager.getStringValue("customer_name");
+                String customer_mobile_no = preferenceManager.getStringValue("customer_mobile_no");
+                edName.setText(customer_name);
+                edMobile.setText(customer_mobile_no);
+            } else {
+                if (dropIndex < dropList.size()) {
+                    Drop drop = dropList.get(dropIndex);
+                    if (drop.getRname() != null) edName.setText(drop.getRname());
+                    if (drop.getRmobile() != null) edMobile.setText(drop.getRmobile());
+                }else {
+                    edName.setText("");
+                    edMobile.setText("");
+                }
+            }
+        });
+
+        btnConfirm.setOnClickListener(v -> {
+            String name = edName.getText().toString().trim();
+            String mobile = edMobile.getText().toString().trim();
+
+            if (edMobile.getText().toString().trim().isEmpty() || edName.getText().toString().trim().isEmpty()) {
+                showError("Please provide the receiver contact details.");
+                return;
+            }
+            if (!isValidIndianMobile(mobile)) {
+                showToastError("Please enter a valid mobile number.");
+                return;
+            }
+            if (addressBundle == null || addressBundle.isEmpty() || TextUtils.isEmpty(addressBundle.getString("drop_fulladdress"))) {
+                showError("Please select the drop location first");
+                return;
+            }
+
+            // Defensive: ensure dropList has at least dropIndex element
+            while (dropList.size() <= dropIndex) {
+                dropList.add(new Drop());
+            }
+
+            // Update the correct drop in the list
+            Drop drop = dropList.get(dropIndex);
+            drop.setLat(latitude);
+            drop.setLog(longitude);
+            drop.setAddress(addressBundle.getString("drop_fulladdress"));
+            drop.setRname(edName.getText().toString().trim());
+            drop.setRmobile(edMobile.getText().toString().trim());
+            dropList.set(dropIndex, drop);
+            dropLocationAdapter.notifyItemChanged(dropIndex);
+
+            // Validate all drops have non-empty address
+            for (int i = 0; i < dropList.size(); i++) {
+                Drop d = dropList.get(i);
+                if (TextUtils.isEmpty(d.getAddress())) {
+                    showError("Please fill address for Drop " + (i + 1) +"\nClick On Edit");
+                    dialog.dismiss();
+                    return;
+                }
+            }
+
+            dialog.dismiss();
+
+            // Proceed to next screen
+            startActivity(new Intent(this, ReviewMapActivity.class)
+                    .putExtra("cab", cabService)
+                    .putExtra("pickup", pickup)
+                    .putExtra("drop", drop));
+        });
+
+        dialog.show();
+    }
+
+    /*private void showBottomConfirmDialog() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View sheetView = getLayoutInflater().inflate(R.layout.customeconfirmdetails, null);
         dialog.setContentView(sheetView);
@@ -609,79 +853,7 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
         dialog.show();
     }
 
-    private void showBottomConfirmDialogNew() {
-        if (dropList != null && dropList.size() >= MAX_DROP_LOCATIONS) {
-            showError("Maximum " + MAX_DROP_LOCATIONS + " drop locations allowed");
-            return;
-        }
-
-        BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View sheetView = getLayoutInflater().inflate(R.layout.customeconfirmdetails, null);
-        dialog.setContentView(sheetView);
-        String fulladdress = "";
-        if(addressBundle != null)
-            fulladdress = addressBundle.getString("drop_fulladdress");
-
-        TextView pickupLabel = sheetView.findViewById(R.id.labelPickup);
-        TextView pickupAddress = sheetView.findViewById(R.id.confirm_pickaddress);
-        TextView title = sheetView.findViewById(R.id.textLabel);
-        CheckBox chUser = sheetView.findViewById(R.id.ch_user);
-        edName = sheetView.findViewById(R.id.ed_name);
-        edMobile = sheetView.findViewById(R.id.ed_mobile);
-        TextView btnConfirm = sheetView.findViewById(R.id.btn_send);
-        LinearLayout contactLyt = sheetView.findViewById(R.id.contactLyt);
-        ImageButton btnContacts = sheetView.findViewById(R.id.btnContacts);
-
-        pickupAddress.setText(fulladdress);
-        pickupLabel.setText("Drop Location " + (dropList.size() + 1));
-
-        // Update UI based on whether it's the last drop point
-        boolean isLastDrop = dropList.size() == MAX_DROP_LOCATIONS - 1;
-        btnConfirm.setText(isLastDrop ? "Proceed to Review" : "Add Drop Point");
-
-        btnConfirm.setOnClickListener(v -> {
-            if (addressBundle == null || addressBundle.isEmpty()) {
-                dialog.dismiss();
-                showError("Please select the drop location first");
-                return;
-            }
-
-            Drop drop = new Drop();
-            drop.setLat(latitude);
-            drop.setLog(longitude);
-            drop.setAddress(addressBundle.getString("drop_fulladdress"));
-
-            if (!cabService && !TextUtils.isEmpty(edMobile.getText()) && !TextUtils.isEmpty(edName.getText())) {
-                drop.setRname(edName.getText().toString().trim());
-                drop.setRmobile(edMobile.getText().toString().trim());
-            } else {
-                drop.setRname("");
-                drop.setRmobile("");
-            }
-
-            dropList.add(drop);
-            dialog.dismiss();
-
-            if (isLastDrop || cabService) {
-                // If this is the last allowed drop or cab service, go to review
-                startActivity(new Intent(this, ReviewMapActivity.class)
-                        .putExtra("cab", cabService)
-                        .putExtra("pickup", pickup)
-                        .putExtra("drop", drop));
-            } else {
-                // Show success message and allow adding another drop point
-                showSuccess("Drop point " + dropList.size() + " added successfully");
-                // Clear the map for next drop point
-                if (mMap != null) {
-                    mMap.clear();
-                    binding.txtAddress.setText("");
-                    binding.locationMarkertext.setVisibility(View.GONE);
-                }
-            }
-        });
-
-        dialog.show();
-    }
+    */
 
     private void showSuccess(String message) {
         Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG)
@@ -732,6 +904,11 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
+        int dropCurrentIndex = dropIndex + 1;
+        if(dropIndex>0)
+            binding.dropmaplocation.setText("Drop Location "+dropCurrentIndex);
+        else
+            binding.dropmaplocation.setText("Drop Location");
 
         mMap.setOnCameraIdleListener(() -> {
             LatLng latLng = mMap.getCameraPosition().target;
@@ -978,7 +1155,7 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
                         binding.txtAddress.setText(address);
                         // Only set search text if not initial load and not showing exact location
                         if (showRecentSearchAddress) {
-                            binding.edSearch.setText(address);
+//                            binding.edSearch.setText(address);
                         }
 
                         binding.locationMarkertext.setVisibility(View.VISIBLE);
@@ -995,6 +1172,9 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
         super.onDestroy();
         if (custPrograssbar != null) {
             custPrograssbar.closePrograssBar();
+        }
+        if(dropList != null){
+            dropList.clear();
         }
         // Clean up Places API
         Places.deinitialize();
@@ -1090,7 +1270,13 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
         EditText searchEditText = view.findViewById(R.id.searchEditText);
         RecyclerView recyclerView = view.findViewById(R.id.recentSearchesRecyclerView);
         TextView recentSearchesTitle = view.findViewById(R.id.recentSearchesTitle);
+        int dropCurrentIndex = dropIndex + 1;
 
+        if(dropIndex>0)
+            searchEditText.setHint("Where is your Drop "+dropCurrentIndex+" Location? ");
+        else{
+            searchEditText.setHint("Where is your Drop Location? ");
+        }
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         // Create adapters
@@ -1106,9 +1292,13 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
         List<RecentSearch> recentSearches = getRecentSearches();
         RecentSearchAdapter recentAdapter = new RecentSearchAdapter(recentSearches,
                 search -> {
+            if(dropIndex>0) {
+                dropList.get(dropIndex).setAddress(search.getAddress());
+                dropLocationAdapter.notifyDataSetChanged();
+            }
                     dialog.dismiss();
                     moveCamera(search.getLatitude(), search.getLongitude());
-                    binding.edSearch.setText(search.getAddress());
+//                    binding.edSearch.setText(search.getAddress());
                 });
 
         // Show recent searches initially
@@ -1251,9 +1441,13 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
                                                     distance
                                             ));
 
+                                            if(dropIndex>0) {
+                                                dropList.get(dropIndex).setAddress(address);
+                                                dropLocationAdapter.notifyDataSetChanged();
+                                            }
                                             dialog.dismiss();
                                             moveCamera(latLng.latitude, latLng.longitude);
-                                            binding.edSearch.setText(name != null ? name : address);
+//                                            binding.edSearch.setText(name != null ? name : address);
                                         }
                                     });
                         }

@@ -749,6 +749,10 @@ if(cabService){
                     showError("Please provide sender contact details");
                     return;
                 }
+                if (!isValidIndianMobile(mobile)) {
+                    showToastError("Please enter a valid mobile number.");
+                    return;
+                }
             }
          dialog.dismiss();
 //                proceedToNextScreen(name,mobile);
@@ -768,6 +772,22 @@ if(cabService){
         } else {
             pickContact();
         }
+    }
+
+
+    private boolean isValidIndianMobile(String mobile) {
+        // Remove spaces and dashes
+        mobile = mobile.replaceAll("[\\s\\-]", "");
+
+        // +91XXXXXXXXXX
+        if (mobile.startsWith("+91") && mobile.length() == 13) {
+            mobile = mobile.substring(3);
+        } else if (mobile.startsWith("91") && mobile.length() == 12) {
+            mobile = mobile.substring(2);
+        }
+
+        // Now mobile should be 10 digits and start with 6-9
+        return mobile.matches("^[6-9]\\d{9}$");
     }
 
     private void pickContact() {
@@ -809,6 +829,10 @@ if(cabService){
         Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG)
                 .setBackgroundTint(getResources().getColor(R.color.colorerror))
                 .show();
+    }
+
+    private void showToastError(String message) {
+       Toast.makeText(this,message,Toast.LENGTH_SHORT).show();
     }
 
     private void proceedToNextScreen(String name, String mobile) {

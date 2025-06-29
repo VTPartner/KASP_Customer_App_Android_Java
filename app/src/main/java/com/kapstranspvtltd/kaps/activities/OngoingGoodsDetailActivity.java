@@ -107,6 +107,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -384,6 +385,7 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
                     url,
                     params,
                     response -> {
+                        preferenceManager.saveBooleanValue("live_ride",false);
                         showError("Booking Cancelled Successfully");
                         onBackPressed();
                     },
@@ -511,8 +513,18 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
 //            penaltyAmount = preferenceManager.getFloatValue(
 //                    "customer_penalty_amount_" + bookingId, 0.0f);
 
+            //Showing Wallet Amount if Used
+            double walletAmount = bookingDetails.getWalletAmount();
+            if(walletAmount>0){
+                dialogBinding.walletLyt.setVisibility(View.VISIBLE);
+                dialogBinding.txtWalletAmtUsed.setText("₹" + Math.round(walletAmount));
+            }else{
+                dialogBinding.walletLyt.setVisibility(View.GONE);
+            }
+
             // Base fare is the original amount before penalty
             double baseFare = totalAmount;
+
 
             // Add penalty to get final total
             if (penaltyAmount > 0) {
@@ -644,9 +656,18 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
     private BookingDetails parseBookingDetails(JSONObject result) throws JSONException {
         BookingDetails details = new BookingDetails();
         String bookingStatus1 = result.optString("booking_status");
-        if(!bookingStatus1.equalsIgnoreCase("Driver Accepted") || !bookingStatus1.equalsIgnoreCase("Driver Arrived") || !bookingStatus1.equalsIgnoreCase("Cancelled") || !bookingStatus1.equalsIgnoreCase("Otp Verified")){
+        System.out.println("bookingStatus1::"+bookingStatus1);
+        List<String> hiddenStatuses = Arrays.asList("Driver Accepted", "Driver Arrived", "Cancelled", "Otp Verified");
+
+        if (!hiddenStatuses.contains(bookingStatus1)) {
             binding.shareLocationBtn.setVisibility(View.VISIBLE);
+        } else {
+            binding.shareLocationBtn.setVisibility(View.GONE);
         }
+
+
+        details.setWalletAmount(result.optDouble("wallet_amount_used"));
+        details.setCoinsGiven(result.optInt("coin_to_be_given"));
 
         details.setCustomerName(result.optString("customer_name"));
         details.setCustomerId(result.optString("customer_id"));
@@ -879,6 +900,9 @@ String currentApiStatus = bookingDetails.getBookingStatus();
         // Update drop addresses section
         binding.lvlDrop.removeAllViews();
 
+        binding.txtWalletAmt.setText("₹" + bookingDetails.getWalletAmount()+"");
+        binding.txtCoinsRvd.setText("\uD83C\uDF15" + bookingDetails.getCoinsGiven());
+
         // Update toolbar
         binding.toolbarTitle.setText("Booking #" + bookingId);
         binding.totaldistance.setText("Distance: "+bookingDetails.getDistance()+"km");
@@ -912,9 +936,11 @@ String currentApiStatus = bookingDetails.getBookingStatus();
         }else{
             binding.btnCancel.setVisibility(View.GONE);
         }
+
         if(bookingStatus.equalsIgnoreCase("Driver Arrived") || bookingStatus.equalsIgnoreCase("Driver Accepted")){
             binding.otpLyt.setVisibility(View.VISIBLE);
         }
+
         if(bookingStatus.equalsIgnoreCase("Cancelled")){
             binding.imgCall.setVisibility(View.GONE);
             binding.otpLyt.setVisibility(View.GONE);
@@ -923,6 +949,7 @@ String currentApiStatus = bookingDetails.getBookingStatus();
         if (bookingStatus.equalsIgnoreCase("Make Payment")) {
             showPaymentDialog(bookingDetails.getTotalPrice());
         }
+
         // Update rider details
         if (!TextUtils.isEmpty(bookingDetails.getDriverImage())) {
             if (OngoingGoodsDetailActivity.this != null)
@@ -968,7 +995,7 @@ String currentApiStatus = bookingDetails.getBookingStatus();
                 for (int i = 0; i < bookingDetails.getDropLocations().size(); i++) {
                     DropLocation drop = bookingDetails.getDropLocations().get(i);
 
-                    View dropView = getLayoutInflater().inflate(R.layout.item_drop_location, null);
+                    View dropView = getLayoutInflater().inflate(R.layout.item_drop_ongoing_location, null);
 
                     TextView dropNumberView = dropView.findViewById(R.id.txt_drop_number);
                     TextView dropAddressView = dropView.findViewById(R.id.txt_drop_address);

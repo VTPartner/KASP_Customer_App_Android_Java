@@ -4,6 +4,7 @@ import static com.google.android.gms.location.LocationServices.getFusedLocationP
 import static com.kapstranspvtltd.kaps.utility.SessionManager.dropList;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -29,6 +30,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.bumptech.glide.Glide;
@@ -46,6 +48,7 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.kapstranspvtltd.kaps.activities.BaseActivity;
 import com.kapstranspvtltd.kaps.network.VolleySingleton;
+import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.CustPrograssbar;
 import com.kapstranspvtltd.kaps.utility.Drop;
 import com.kapstranspvtltd.kaps.utility.Pickup;
@@ -100,14 +103,42 @@ public class SearchingGoodsDriverActivity extends BaseActivity implements OnMapR
         mapFragment.getMapAsync(this);
 
         tripInfo();
-        binding.imgBack.setOnClickListener(v -> finish());
+
+        binding.imgBack.setOnClickListener(v -> onBackPressed());
+
         startCountDownTimer();
-        binding.btnCancel.setOnClickListener(v -> showCancelConfirmationDialog());
+
         Glide.with(this)
                 .asGif()
                 .load(R.drawable.searching_driver)
                 .into(binding.searchingDriverIcon);
     }
+
+    private void showCancelConfirmationDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Cancel Booking")
+                .setMessage("Are you sure you want to cancel this booking?")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    cancelBooking();
+                    // Don't call super.onBackPressed() here since cancelBooking() calls finish()
+                })
+                .setNegativeButton("No", null)
+                .setCancelable(false)  // Prevent dismissing dialog by clicking outside
+                .show();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (countDownTimer != null) {
+            // Show confirmation dialog
+            showCancelConfirmationDialog();
+        } else {
+            super.onBackPressed(); // Call super if timer is null
+        }
+    }
+
+
+
 
     private void startCountDownTimer() {
         countDownTimer = new CountDownTimer(COUNTDOWN_TIME * 1000, 1000) {
@@ -313,89 +344,57 @@ public class SearchingGoodsDriverActivity extends BaseActivity implements OnMapR
         return poly;
     }
 
-    private void showCancelConfirmationDialog() {
-        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
-        View sheetView = getLayoutInflater().inflate(R.layout.layout_cancel_booking_sheet, null);
 
-        // Initialize views
-        ImageView driverImage = sheetView.findViewById(R.id.driverImage);
-        TextView driverName = sheetView.findViewById(R.id.driverName);
-        TextView messageText = sheetView.findViewById(R.id.messageText);
-        RecyclerView reasonsRecyclerView = sheetView.findViewById(R.id.reasonsRecyclerView);
-        Button submitButton = sheetView.findViewById(R.id.submitButton);
-        ProgressBar progressBar = sheetView.findViewById(R.id.progressBar);
-
-        // Set driver details
-//        Glide.with(this)
-//                .load(driverImageUrl)
-//                .placeholder(R.drawable.placeholder)
-//                .circleCrop()
-//                .into(driverImage);
-//
-//        driverName.setText(driverName);
-//        messageText.setText("You are about to cancel the booking which was assigned to " + driverName);
-
-        // Setup RecyclerView
-        reasonsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        List<String> cancelReasons = Arrays.asList(
-                "Driver delayed pickup",
-                "Wrong vehicle assigned",
-                "Driver unreachable",
-                "Change of plans",
-                "Other reasons",
-                // ... add all other reasons
-                "Customer support was helpful in resolving issues"
-        );
-
-//        CancelReasonAdapter adapter = new CancelReasonAdapter(cancelReasons, reason -> {
-//            selectedReason = reason;
-//            submitButton.setEnabled(true);
-//        });
-//        reasonsRecyclerView.setAdapter(adapter);
-
-        // Setup submit button
-        submitButton.setEnabled(false);
-        submitButton.setOnClickListener(v -> {
-            if (selectedReason.isEmpty()) {
-                Toast.makeText(this, "Please select a cancellation reason.", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            bottomSheetDialog.dismiss();
-            cancelBooking();
-        });
-
-        bottomSheetDialog.setContentView(sheetView);
-        bottomSheetDialog.show();
-    }
 
     private void cancelBooking() {
-        finish();
-//        showLoading(true);
-//        String url = APIClient.baseUrl + "cancel_booking";
-//        String serverToken = AccessToken.getAccessToken();
-//        prefe
-//
-//        Map<String, String> params = new HashMap<>();
-//        params.put("booking_id", bookingId);
-//        params.put("customer_id", customerId);
-//        params.put("driver_id", driverId);
-//        params.put("pickup_address", pickup.getAddress());
-//        params.put("server_token", serverToken);
-//        params.put("cancel_reason", selectedReason);
-//
-//        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url, new JSONObject(params),
-//                response -> {
-//                    showLoading(false);
-//                    // Handle success
-//                    finish(); // or navigate to main screen
-//                },
-//                error -> {
-//                    showLoading(false);
-//                    handleError(error);
-//                });
-//
-//        VolleySingleton.getInstance(this).addToRequestQueue(request);
+        String url = APIClient.baseUrl + "customer_not_interested_cancelled_booking";
+
+
+
+        JSONObject params = new JSONObject();
+        try {
+            params.put("booking_id", bookingId);
+
+            JsonObjectRequest request = new JsonObjectRequest(
+                    Request.Method.POST,
+                    url,
+                    params,
+                    response -> {
+
+                        Toast.makeText(this, "Booking cancelled successfully", Toast.LENGTH_SHORT).show();
+                        finish();
+                    },
+                    error -> {
+
+                        String errorMessage = "Failed to cancel booking";
+                        if (error.networkResponse != null && error.networkResponse.data != null) {
+                            try {
+                                String errorResponse = new String(error.networkResponse.data);
+                                JSONObject errorJson = new JSONObject(errorResponse);
+                                errorMessage = errorJson.optString("message", errorMessage);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
+                    }
+            );
+
+            request.setRetryPolicy(new DefaultRetryPolicy(
+                    30000,
+                    DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                    DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+            ));
+
+            VolleySingleton.getInstance(this).addToRequestQueue(request);
+
+        } catch (JSONException e) {
+
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
+
+
 
     @Override
     protected void onDestroy() {

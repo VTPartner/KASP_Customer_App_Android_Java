@@ -45,6 +45,28 @@ public class OrderDetails {
     private String paymentMethod;
     private String totalPrice;
 
+    public Double getWalletAmount() {
+        return walletAmount;
+    }
+
+    public void setWalletAmount(Double walletAmount) {
+        this.walletAmount = walletAmount;
+    }
+
+    public int getCoinGiven() {
+        return coinGiven;
+    }
+
+    public void setCoinGiven(int coinGiven) {
+        this.coinGiven = coinGiven;
+    }
+
+    private Double walletAmount;
+
+    private int coinGiven;
+
+
+
     public String getPenaltyAmount() {
         return penaltyAmount;
     }
@@ -561,6 +583,10 @@ public class OrderDetails {
         details.setBasePrice(json.getString("base_price"));
         details.setGstAmount(json.getString("gst_amount"));
         details.setIgstAmount(json.getString("igst_amount"));
+
+        details.setWalletAmount(json.getDouble("wallet_amount_used"));
+        details.setCoinGiven(json.getInt("coin_to_be_given"));
+
         if (json.has("penalty_amount") && !json.isNull("penalty_amount")) {
             details.setPenaltyAmount(json.getString("penalty_amount"));
         }

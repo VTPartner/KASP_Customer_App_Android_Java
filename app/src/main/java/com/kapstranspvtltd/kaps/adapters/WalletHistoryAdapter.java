@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.activities.models.WalletTransaction;
+import com.kapstranspvtltd.kaps.utility.DateTimeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,8 +69,16 @@ public class WalletHistoryAdapter extends RecyclerView.Adapter<WalletHistoryAdap
             txtAmount.setTextColor(ContextCompat.getColor(context,
                     transaction.getType().equalsIgnoreCase("CREDIT") ? R.color.green : R.color.colorerror));
 
-            txtType.setText("#"+transaction.getRazorPayID());
-            txtDate.setText(transaction.getDate());
+            String razorPayID = transaction.getRazorPayID();
+
+            String remarks = transaction.getRemarks();
+
+            double transactionTime = transaction.getTransactionTime();
+            long epochTime = (long) transactionTime;  // cast the double to long
+            String convertedTime = DateTimeUtils.formatEpochToDateTime(epochTime);
+
+            txtType.setText(razorPayID.contains("NA") == false ? "#"+ razorPayID : remarks);
+            txtDate.setText(convertedTime);
             txtStatus.setText(transaction.getType());
             txtStatus.setTextColor(ContextCompat.getColor(context,
                     transaction.getType().equalsIgnoreCase("CREDIT") ? R.color.green : R.color.colorerror));

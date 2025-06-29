@@ -70,6 +70,8 @@
             android:layout_width="match_parent"
             android:layout_height="10dp"
             android:background="@color/colorgrey0" />
+
+
         <LinearLayout
 
             android:layout_width="match_parent"
@@ -122,6 +124,7 @@
             android:layout_marginLeft="10dp"
             android:layout_marginRight="10dp"
             android:background="@color/colorgrey1" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -153,8 +156,33 @@
                     android:textSize="12dp" />
             </LinearLayout>
 
+<!--            <LinearLayout-->
+<!--                android:id="@+id/place_trip"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_weight="1"-->
+<!--                android:gravity="center"-->
+
+<!--                android:orientation="vertical"-->
+<!--                android:padding="5dp">-->
+
+<!--                <ImageView-->
+<!--                    android:layout_width="wrap_content"-->
+<!--                    android:layout_height="100dp"-->
+<!--                    android:padding="5dp"-->
+<!--                    android:src="@drawable/first_trip" />-->
+
+<!--                <TextView-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:gravity="center"-->
+<!--                    android:padding="2dp"-->
+<!--                    android:text="@string/place_a_first_trip"-->
+<!--                    android:textColor="@color/apptextcolor"-->
+<!--                    android:textSize="12dp" />-->
+<!--            </LinearLayout>-->
             <LinearLayout
-                android:id="@+id/place_trip"
+                android:id="@+id/reward_coins"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -166,15 +194,15 @@
                 <ImageView
                     android:layout_width="wrap_content"
                     android:layout_height="100dp"
-                    android:padding="5dp"
-                    android:src="@drawable/first_trip" />
+
+                    android:src="@drawable/ic_coins_stack" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:padding="2dp"
-                    android:text="@string/place_a_first_trip"
+                    android:text="Kaps Coins"
                     android:textColor="@color/apptextcolor"
                     android:textSize="12dp" />
             </LinearLayout>

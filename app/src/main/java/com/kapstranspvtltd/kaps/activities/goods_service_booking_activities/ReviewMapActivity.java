@@ -2,6 +2,7 @@ package com.kapstranspvtltd.kaps.activities.goods_service_booking_activities;
 
 import static com.kapstranspvtltd.kaps.utility.SessionManager.dropList;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
@@ -22,6 +23,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -304,7 +306,7 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
         } catch (NumberFormatException e) {
             multipleDrops = 3; // fallback value
         }
-        binding.txtAddnewstop.setVisibility(dropList.size() < multipleDrops ? View.VISIBLE : View.GONE);
+        binding.txtAddnewstop.setVisibility(dropList.size() <= multipleDrops ? View.VISIBLE : View.GONE);
 
         geoApiContext = new GeoApiContext.Builder()
                 .apiKey(getString(R.string.google_maps_key))
@@ -323,10 +325,11 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
     private void setupClickListeners() {
 
         binding.txtPickaddress.setOnClickListener(v->{
-            Glb.showPickup = true;
-            startActivity(new Intent(this, GoodsPickupMapLocationActivity.class));
-            finish();
-            finish();
+            Toast.makeText(this, "Navigate back booking locations screen to edit pickup location", Toast.LENGTH_SHORT).show();
+//            Glb.showPickup = true;
+//            startActivity(new Intent(this, GoodsPickupMapLocationActivity.class));
+//            finish();
+//            finish();
         });
 //        binding.btnProce.setOnClickListener(v -> startActivity(new Intent(this, BookingReviewScreenActivity.class)
         binding.btnProce.setOnClickListener(v ->{
@@ -641,17 +644,17 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
             Drop item = dropList.get(position);
             holder.binding.txtDropaddress.setText(item.getAddress());
             holder.binding.imgDelete.setVisibility(position == 0 ? View.GONE : View.VISIBLE);
-
+            holder.binding.imgEdit.setVisibility(View.VISIBLE);
             holder.binding.imgEdit.setOnClickListener(v -> {
                 // Save the position being edited
                 Glb.editingDropPosition = position;
 
-                // Start the drop location activity with existing data
-                Intent intent = new Intent(v.getContext(), GoodsPickupMapLocationActivity.class);
-                intent.putExtra("isEditing", true);
-                intent.putExtra("editDrop", item);
-                intent.putExtra("editPosition", position);
-                v.getContext().startActivity(intent);
+                // Finish the current activity
+                Context context = v.getContext();
+                if (context instanceof Activity) {
+                    ((Activity) context).setResult(Activity.RESULT_OK); // Optional, if you want to pass result
+                    ((Activity) context).finish();
+                }
             });
 
             holder.binding.imgDelete.setOnClickListener(v -> {
@@ -797,9 +800,9 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
 
         // Clear binding
         binding = null;
-
-        if(!Glb.addStopClicked){
-            dropList.clear();
-        }
+//        System.out.println("addStopClicked::"+Glb.addStopClicked);
+//        if(!Glb.addStopClicked){
+//            dropList.clear();
+//        }
     }
 }

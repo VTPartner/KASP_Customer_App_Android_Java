@@ -30,6 +30,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -39,7 +40,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.NetworkError;
+import com.android.volley.NetworkResponse;
 import com.android.volley.NoConnectionError;
+import com.android.volley.ParseError;
 import com.android.volley.Request;
 import com.android.volley.ServerError;
 import com.android.volley.TimeoutError;
@@ -149,6 +153,8 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
     private Spinner bodyTypeSpinner;
     private String selectedBodyType = "Any";
 
+    private int coinRewardPoints = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -205,6 +211,8 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         // Load all required data
         //loadVehicles();
         fetchGuidelines();
+        fetchWalletDetails();
+//        fetchVehicleCoinRewardPoints(selectedVehicle.getVehicleId());
         if (cabService) {
             binding.goodsLyt.setVisibility(View.GONE);
         }
@@ -223,6 +231,152 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         //schedule bookings
         setupScheduledBookings();
 
+    }
+
+    private void fetchVehicleCoinRewardPoints(int vehicleId) {
+        showLoading(true);
+        JSONObject params = new JSONObject();
+        try {
+            params.put("vehicle_id", vehicleId);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        String url = APIClient.baseUrl + "get_vehicle_coin_reward_points";
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST,
+                url,
+                params,
+                response -> {
+                    showLoading(false);
+                    try {
+                        if (response.has("coin_reward_points")) {
+                            coinRewardPoints = response.getInt("coin_reward_points");
+
+                            // Set the value to your TextView
+                            binding.txtCoinRewardPoints.setText("You'll get "+String.valueOf(coinRewardPoints)+" coins on this order ✨");
+                        } else if (response.has("message")) {
+                            showError(response.getString("message"));
+                            binding.txtCoinRewardPoints.setText("You'll get 0 coins on this order ✨");
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        showError("Failed to parse coin reward points");
+                        binding.txtCoinRewardPoints.setText("You'll get 0 coins on this order ✨");
+                    }
+                },
+                error -> {
+                    error.printStackTrace();
+                    showLoading(false);
+                    showError("Failed to fetch coin reward points");
+                    binding.txtCoinRewardPoints.setText("You'll get 0 coins on this order ✨");
+                }) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Content-Type", "application/json");
+                return headers;
+            }
+        };
+
+        request.setRetryPolicy(new DefaultRetryPolicy(
+                30000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        ));
+
+        VolleySingleton.getInstance(this).addToRequestQueue(request);
+    }
+
+    private void fetchWalletDetails() {
+        showLoading(true);
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+        JSONObject params = new JSONObject();
+        try {
+            params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+
+        String url = APIClient.baseUrl + "customer_wallet_details";
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST,
+                url,
+                params,
+                response -> {
+                    showLoading(false);
+                    try {
+                        if (response.has("message")) {
+                            // Handle no data found case
+
+                            return;
+                        }
+
+                        if (response.has("results")) {
+                            JSONObject results = response.getJSONObject("results");
+                            updateWalletUI(results);
+                        } else {
+
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        showError("Failed to parse response");
+
+                    }
+                },
+                error -> {
+                    error.printStackTrace();
+                    showLoading(false);
+
+                    // Handle different types of errors
+                    String errorMessage;
+                    if (error instanceof NetworkError) {
+                        errorMessage = "No internet connection";
+                    } else if (error instanceof TimeoutError) {
+                        errorMessage = "Request timed out";
+                    } else if (error instanceof ServerError) {
+                        errorMessage = "Server error";
+                    } else if (error instanceof ParseError) {
+                        errorMessage = "Data parsing error";
+                    } else {
+                        errorMessage = "Network request failed";
+                    }
+
+
+
+                    // Log the error details
+                    NetworkResponse networkResponse = error.networkResponse;
+                    if (networkResponse != null) {
+                        Log.e("WalletActivity", "Error Status Code: " + networkResponse.statusCode);
+                        Log.e("WalletActivity", "Error URL: " + url);
+                        Log.e("WalletActivity", "Error Params: " + params.toString());
+                    }
+                }) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Content-Type", "application/json");
+                // Add any other required headers
+                return headers;
+            }
+        };
+
+        request.setRetryPolicy(new DefaultRetryPolicy(
+                30000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        ));
+
+        VolleySingleton.getInstance(this).addToRequestQueue(request);
+    }
+
+    private void updateWalletUI(JSONObject results) throws JSONException {
+        // Update wallet balance
+        JSONObject walletDetails = results.getJSONObject("wallet_details");
+        walletBalance = walletDetails.getDouble("current_balance"); // <-- Save balance for later use
     }
 
     private void setupScheduledBookings() {
@@ -505,6 +659,11 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
             binding.finalAmount.setText(String.format("₹%d", (int)finalAmount));
             binding.bottomTotalAmount.setText(String.format("₹%d", (int)finalAmount));
 
+            // Calculate coinRewardPoints as (finalAmount / 100)
+            coinRewardPoints = (int) finalAmount / 100;
+
+            binding.txtCoinRewardPoints.setText("You'll get " + coinRewardPoints + " coins on this order ✨");
+
             // Update base fare note if needed
             if (selectedVehicle != null) {
                 binding.baseFareNote.setText(String.format(
@@ -782,9 +941,11 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
 
         binding.btnBook.setOnClickListener(v -> {
             if (showHikePrice) {
+
                 showPriceAdjustmentSheet();
             } else {
-                saveBookingDetails();
+                showPaymentMethodDailog();
+//                saveBookingDetails();
             }
         });
 
@@ -812,6 +973,92 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         }
 
         txtGoodType = binding.txtGoodType;
+    }
+
+    private double walletBalance = 0.0; // Set this after fetching wallet details
+    private double totalAmount = 0.0;   // Set this as per your calculation
+
+    private void showPaymentMethodDailog() {
+        BottomSheetDialog mBottomSheetDialog = new BottomSheetDialog(this);
+        View sheetView = getLayoutInflater().inflate(R.layout.pay_via_wallet_layout, null);
+        LinearLayout payOnDelivery = sheetView.findViewById(R.id.payCashLyt);
+        TextView txtBooktrip = sheetView.findViewById(R.id.btn_booktrip);
+        LinearLayout lvlWallet = sheetView.findViewById(R.id.lvl_wallet);
+
+        Switch useWalletBalance = sheetView.findViewById(R.id.use_from_wallet_balance_switch);
+        TextView txtTotalAmount = sheetView.findViewById(R.id.txt_total);
+        TextView txtWalletBalance = sheetView.findViewById(R.id.txt_wallet_balance);
+if(adjustedPrice <=0){
+    totalAmount = finalAmount;
+}
+        // Set wallet balance and total
+        txtWalletBalance.setText(String.format("₹%.2f", walletBalance));
+        txtTotalAmount.setText(String.format("Total ₹%.2f", totalAmount));
+
+        // Enable switch only if wallet balance > 10
+        useWalletBalance.setEnabled(walletBalance > 1);
+
+        // Add "Pay on Delivery" option
+//        TextView payOnDelivery = new TextView(this);
+//        payOnDelivery.setText("Pay on Delivery");
+//        payOnDelivery.setTextSize(16);
+//        payOnDelivery.setPadding(16, 16, 16, 16);
+//        payOnDelivery.setTextColor(getResources().getColor(R.color.black));
+//        listView.addView(payOnDelivery);
+
+        // Handle wallet switch and payment logic
+        useWalletBalance.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked && walletBalance > 1) {
+                double usedWallet = Math.min(walletBalance, totalAmount);
+                txtTotalAmount.setText(String.format("Total ₹%.2f", totalAmount - usedWallet));
+                txtBooktrip.setVisibility(View.VISIBLE);
+                payOnDelivery.setVisibility(View.GONE);
+            } else {
+                txtTotalAmount.setText(String.format("Total ₹%.2f", totalAmount));
+                txtBooktrip.setVisibility(View.GONE);
+                payOnDelivery.setVisibility(View.VISIBLE);
+            }
+        });
+
+        // Default state
+        if (walletBalance > 1) {
+            useWalletBalance.setChecked(false);
+            txtBooktrip.setVisibility(View.GONE);
+            payOnDelivery.setVisibility(View.VISIBLE);
+        } else {
+            useWalletBalance.setChecked(false);
+            useWalletBalance.setEnabled(false);
+            txtBooktrip.setVisibility(View.GONE);
+            payOnDelivery.setVisibility(View.VISIBLE);
+        }
+
+        // Book trip with wallet
+        txtBooktrip.setOnClickListener(v -> {
+            double usedWallet = Math.min(walletBalance, totalAmount);
+            saveBookingDetails(usedWallet, "WALLET");
+            mBottomSheetDialog.dismiss();
+        });
+
+        // Book trip with pay on delivery
+        payOnDelivery.setOnClickListener(v -> {
+            saveBookingDetails(0.0, "COD");
+            mBottomSheetDialog.dismiss();
+        });
+
+        // Reset price if dialog is cancelled
+        mBottomSheetDialog.setOnCancelListener(dialog -> {
+            adjustedPrice = originalPrice;
+            finalAmount = originalPrice;
+            totalAmount = originalPrice;
+            binding.finalAmount.setText(String.format("₹%d", (int) finalAmount));
+            binding.bottomTotalAmount.setText(String.format("₹%d", (int) finalAmount));
+            updateFareBreakdown();
+
+
+        });
+
+        mBottomSheetDialog.setContentView(sheetView);
+        mBottomSheetDialog.show();
     }
 
     private double originalPrice = 0.0;
@@ -852,12 +1099,20 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
             priceAdjustmentDialog.dismiss();
         });
 
+        // Handle cancel (user taps outside or presses back)
+        priceAdjustmentDialog.setOnCancelListener(dialog -> {
+            adjustedPrice = originalPrice;
+            updateFareBreakdown();
+        });
+
         // Handle confirm
         btnConfirmPrice.setOnClickListener(v -> {
             finalAmount = adjustedPrice;
+            totalAmount = finalAmount;
             updateFareBreakdown();
             priceAdjustmentDialog.dismiss();
-            saveBookingDetails();
+            showPaymentMethodDailog();
+            //saveBookingDetails();
         });
 
         priceAdjustmentDialog.show();
@@ -1025,7 +1280,7 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         return tv;
     }
 
-    private void saveBookingDetails() {
+    private void saveBookingDetails(double walletUsed, String paymentMethod) {
 
         if (selectedVehicle == null) {
             showError("Please select the vehicle first to book");
@@ -1088,7 +1343,7 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
                 jsonBody.put("gst_amount", 0);
                 jsonBody.put("igst_amount", 0);
                 jsonBody.put("goods_type_id", goodsTypeID);
-                jsonBody.put("payment_method", "NA");
+//                jsonBody.put("payment_method", "NA");
                 jsonBody.put("city_id", cityId);
                 jsonBody.put("sender_name", pickup.getRname());
                 jsonBody.put("sender_number", pickup.getRmobile());
@@ -1103,6 +1358,9 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
                 jsonBody.put("before_coupon_amount", beforeCouponAmount);
                 jsonBody.put("hike_price", adjustedPrice);
 
+                jsonBody.put("wallet_amount_used", walletUsed);
+                jsonBody.put("payment_method", paymentMethod);
+                jsonBody.put("coin_to_be_given", coinRewardPoints);
 
                 jsonBody.put("is_scheduled", isScheduledBooking);
                 if (isScheduledBooking) {
