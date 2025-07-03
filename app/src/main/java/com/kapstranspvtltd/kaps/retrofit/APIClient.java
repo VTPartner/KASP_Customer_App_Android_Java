@@ -17,7 +17,7 @@ public class APIClient {
     private static final int DEV_MODE = 0; // If Dev Mode is 1 then development server is on and if 0 then production server is on
 
     public static final String baseUrl = DEV_MODE == 1
-            ? "http://100.24.44.74:8000/api/vt_partner/"
+            ? "http://44.203.96.86:8000/api/vt_partner/"
             : "https://www.kaps9.in/api/vt_partner/";
     //        public static String baseUrl = "http://100.24.44.74:8000/api/vt_partner/";
 //        public static String baseUrl = "http://100.24.44.74/api/vt_partner/";

@@ -275,13 +275,11 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
     }
 
     private void removeDrop(int position) {
-        /*if (position == 0) return; // Don't remove first drop
-        dropList.remove(position);
-        dropLocationAdapter.setEditingIndex(-1);
-        dropLocationAdapter.notifyDataSetChanged();*/
+        // Don't remove first drop (position 0)
+        if (position == 0) return;
 
-
-            if (position == 0) return; // Don't remove first drop
+        // Check if position is valid
+        if (position >= 0 && position < dropList.size()) {
             dropList.remove(position);
             dropLocationAdapter.setEditingIndex(-1);
             dropLocationAdapter.notifyDataSetChanged();
@@ -292,6 +290,9 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
             }
             if (dropIndex < 0) dropIndex = 0;
 
+            // Update camera position to show the last remaining drop location
+            updateCameraAfterDropRemoval();
+        }
     }
 
     private void editDrop(int position) {
@@ -1088,15 +1089,105 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
         }
     }
 
-    // Add lifecycle methods for location updates
     @Override
     protected void onResume() {
         super.onResume();
         if (mMap != null && currentLocation) {
             getCurrentLocation();
         }
+
+        // Refresh the drop location adapter to reflect any changes from ReviewMapActivity
+        refreshDropLocationAdapter();
     }
 
+    private void refreshDropLocationAdapter() {
+        if (dropLocationAdapter != null) {
+            dropLocationAdapter.notifyDataSetChanged();
+
+            // Update the "Add New Stop" button visibility
+            String dropsValue = preferenceManager.getStringValue("multiple_drops", "3");
+            int multipleDrops;
+            try {
+                multipleDrops = Integer.parseInt(dropsValue);
+            } catch (NumberFormatException e) {
+                multipleDrops = 3; // fallback value
+            }
+
+            // Update dropIndex to a valid value if needed
+            if (dropIndex >= dropList.size()) {
+                dropIndex = dropList.size() - 1;
+            }
+            if (dropIndex < 0) dropIndex = 0;
+
+            // Update the title text
+            int dropCurrentIndex = dropIndex + 1;
+            if(dropIndex > 0)
+                binding.dropmaplocation.setText("Drop Location " + dropCurrentIndex);
+            else
+                binding.dropmaplocation.setText("Drop Location");
+
+            // Update camera position to show the current drop location
+            updateCameraAfterDropRemoval();
+        }
+    }
+
+    private void updateCameraAfterDropRemoval() {
+        if (mMap == null || dropList == null || dropList.isEmpty()) return;
+
+        try {
+            // Find the last valid drop location
+            Drop lastValidDrop = null;
+            for (int i = dropList.size() - 1; i >= 0; i--) {
+                Drop drop = dropList.get(i);
+                if (drop.getLat() != 0.0 && drop.getLog() != 0.0 && !TextUtils.isEmpty(drop.getAddress())) {
+                    lastValidDrop = drop;
+                    break;
+                }
+            }
+
+            if (lastValidDrop != null) {
+                // Move camera to the last valid drop location
+                LatLng lastLocation = new LatLng(lastValidDrop.getLat(), lastValidDrop.getLog());
+                CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(lastLocation, 100);
+                mMap.animateCamera(cameraUpdate);
+
+                // Update the current dropIndex to the last valid drop
+                for (int i = 0; i < dropList.size(); i++) {
+                    if (dropList.get(i) == lastValidDrop) {
+                        dropIndex = i;
+                        break;
+                    }
+                }
+
+                // Update the title text
+                int dropCurrentIndex = dropIndex + 1;
+                if(dropIndex > 0)
+                    binding.dropmaplocation.setText("Drop Location " + dropCurrentIndex);
+                else
+                    binding.dropmaplocation.setText("Drop Location");
+
+            } else {
+                // If no valid drops, show pickup location
+                if (pickup != null) {
+                    LatLng pickupLocation = new LatLng(pickup.getLat(), pickup.getLog());
+                    CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(pickupLocation, 15);
+                    mMap.animateCamera(cameraUpdate);
+                }
+
+                // Reset to first drop
+                dropIndex = 0;
+                binding.dropmaplocation.setText("Drop Location");
+            }
+
+        } catch (Exception e) {
+            // Fallback: show pickup location
+            if (pickup != null) {
+                LatLng pickupLocation = new LatLng(pickup.getLat(), pickup.getLog());
+                CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(pickupLocation, 15);
+                mMap.animateCamera(cameraUpdate);
+            }
+        }
+    }
     private class GetAddressFromLatLng extends AsyncTask<Double, Void, Bundle> {
         @Override
         protected void onPreExecute() {
@@ -1298,6 +1389,7 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
             }
                     dialog.dismiss();
                     moveCamera(search.getLatitude(), search.getLongitude());
+                    showBottomConfirmDialog();
 //                    binding.edSearch.setText(search.getAddress());
                 });
 
@@ -1447,6 +1539,7 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
                                             }
                                             dialog.dismiss();
                                             moveCamera(latLng.latitude, latLng.longitude);
+                                            showBottomConfirmDialog();
 //                                            binding.edSearch.setText(name != null ? name : address);
                                         }
                                     });

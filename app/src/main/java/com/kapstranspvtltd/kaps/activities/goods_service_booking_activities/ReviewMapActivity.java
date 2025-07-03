@@ -658,14 +658,33 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
             });
 
             holder.binding.imgDelete.setOnClickListener(v -> {
-                if (position != 0) {
-                    dropList.remove(item);
+                if (position != 0 && position < dropList.size()) {
+                    // Remove from the global dropList
+                    dropList.remove(position);
+
+                    // Notify the adapter
                     notifyDataSetChanged();
+
+                    // Update the map
                     updateMap(gMap);
-                    binding.txtAddnewstop.setVisibility(dropList.size() <= 2 ? View.VISIBLE : View.GONE);
-                }
-                if(dropList.size() <=1){
-                    Glb.addStopClicked = false;
+
+                    // Update the "Add New Stop" button visibility
+                    String dropsValue = preferenceManager.getStringValue("multiple_drops", "3");
+                    int multipleDrops;
+                    try {
+                        multipleDrops = Integer.parseInt(dropsValue);
+                    } catch (NumberFormatException e) {
+                        multipleDrops = 3; // fallback value
+                    }
+                    binding.txtAddnewstop.setVisibility(dropList.size() < multipleDrops ? View.VISIBLE : View.GONE);
+
+                    // Update Glb.addStopClicked flag
+                    if(dropList.size() <= 1){
+                        Glb.addStopClicked = false;
+                    }
+
+                    // Show a toast to confirm deletion
+                    Toast.makeText(ReviewMapActivity.this, "Drop location removed", Toast.LENGTH_SHORT).show();
                 }
             });
         }
