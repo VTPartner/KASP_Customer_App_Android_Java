@@ -108,7 +108,13 @@ public class OrderDetailsScreenActivity extends AppCompatActivity implements OnM
         }
 
         fetchOrderDetails(orderId);
-        binding.btnGenerateInvoice.setOnClickListener(v -> captureAndShareScreenshot());
+        binding.btnGenerateInvoice.setOnClickListener(v -> {
+            String url = "https://www.kaps9.in/goods-invoice/" + orderId;
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            startActivity(intent);
+        });
+
+//        binding.btnGenerateInvoice.setOnClickListener(v -> captureAndShareScreenshot());
     }
 
     private void showRatingDialog() {

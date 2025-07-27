@@ -19,11 +19,14 @@ import com.kapstranspvtltd.kaps.fcm.FCMService;
 import com.kapstranspvtltd.kaps.language_change_utils.LocaleHelper;
 import com.kapstranspvtltd.kaps.network.VolleySingleton;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
+import com.kapstranspvtltd.kaps.utility.AppContentManager;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
+import com.kapstranspvtltd.kaps.model.AppContent;
 
 import org.json.JSONObject;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,6 +47,11 @@ public class MyApplication extends Application {
 
         mContext = this;
         preferenceManager = new PreferenceManager(this);
+
+        Boolean firstRun = preferenceManager.getBooleanValue("firstRun");
+
+        if(firstRun == false) preferenceManager.clearPreferences();
+
         locationViewModel = new LocationViewModel(this);
         executorService = Executors.newSingleThreadExecutor();
         if(dropList != null){
@@ -57,6 +65,9 @@ public class MyApplication extends Application {
         getFCMToken();
         // Cancel all existing notifications when app starts
         FCMService.cancelAllNotifications(this);
+        
+        // Fetch app content for all screens
+        fetchAppContent();
 
     }
 
@@ -126,6 +137,45 @@ public class MyApplication extends Application {
                 e.printStackTrace();
             }
         });
+    }
+
+    private void fetchAppContent() {
+        AppContentManager.getInstance(this).fetchAppContent(this, new AppContentManager.AppContentCallback() {
+            @Override
+            public void onSuccess(Map<String, List<AppContent>> content) {
+                Log.d("MyApplication", "App content fetched successfully");
+                // Load splash screen content immediately
+                loadSplashScreenContent();
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e("MyApplication", "Error fetching app content: " + error);
+            }
+        });
+    }
+
+    private void loadSplashScreenContent() {
+        AppContent splashContent = AppContentManager.getInstance(this)
+                .getFirstContentForScreen("customer_splash_screen");
+        
+        if (splashContent != null && !splashContent.getImageUrl().equals("NA")) {
+            Log.d("MyApplication", "Splash screen content loaded: " + splashContent.getTitle());
+            
+            // Preload the splash screen image for faster loading
+            if (splashContent.getImageUrl().startsWith("http")) {
+                try {
+                    com.bumptech.glide.Glide.with(this)
+                            .load(splashContent.getImageUrl())
+                            .preload();
+                    Log.d("MyApplication", "Splash screen image preloaded successfully");
+                } catch (Exception e) {
+                    Log.e("MyApplication", "Error preloading splash screen image: " + e.getMessage());
+                }
+            }
+        } else {
+            Log.d("MyApplication", "No splash screen content found, using default");
+        }
     }
 
     public static boolean isActivityVisible() {

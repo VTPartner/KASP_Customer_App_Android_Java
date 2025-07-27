@@ -215,6 +215,8 @@ public class FCMService extends FirebaseMessagingService {
                     showRegularNotification(title != null ? title : "", message != null ? message : "", data);
                     break;
             }
+        }else {
+            showRegularNotification(remoteMessage.getNotification().getTitle(),remoteMessage.getNotification().getBody(),data);
         }
     }
 

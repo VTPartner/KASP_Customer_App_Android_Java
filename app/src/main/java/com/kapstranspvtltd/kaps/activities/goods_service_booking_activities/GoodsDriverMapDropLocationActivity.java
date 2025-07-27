@@ -724,11 +724,16 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
             dropList.set(dropIndex, drop);
             dropLocationAdapter.notifyItemChanged(dropIndex);
 
-            // Validate all drops have non-empty address
+            // Validate all drops have non-empty address AND contact details
             for (int i = 0; i < dropList.size(); i++) {
                 Drop d = dropList.get(i);
                 if (TextUtils.isEmpty(d.getAddress())) {
                     showError("Please fill address for Drop " + (i + 1) +"\nClick On Edit");
+                    dialog.dismiss();
+                    return;
+                }
+                if (TextUtils.isEmpty(d.getRname()) || TextUtils.isEmpty(d.getRmobile())) {
+                    showError("Please provide contact details for Drop " + (i + 1));
                     dialog.dismiss();
                     return;
                 }

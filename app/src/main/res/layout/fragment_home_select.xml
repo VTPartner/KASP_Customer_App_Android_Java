@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -73,82 +72,433 @@
                     android:layout_marginBottom="15dp"
                     android:textStyle="bold" />
 
-                <com.kapstranspvtltd.kaps.utility.CustomRecyclerView
-                    android:id="@+id/servicesRecyclerView"
+                <!-- Services Section -->
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <com.kapstranspvtltd.kaps.utility.CustomRecyclerView
+                        android:id="@+id/servicesRecyclerView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="10dp"
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"
+                        android:scrollbars="vertical" />
+
+                    <!-- Services Shimmer -->
+                    <com.facebook.shimmer.ShimmerFrameLayout
+                        android:id="@+id/shimmerServices"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="10dp"
+                        android:visibility="gone"
+                        app:shimmer_auto_start="true"
+                        app:shimmer_base_color="#F3F3F3"
+                        app:shimmer_colored="true"
+                        app:shimmer_highlight_color="#E7E7E7">
+
+                        <GridLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:columnCount="3"
+                            android:orientation="horizontal"
+                            android:alignmentMode="alignMargins"
+                            android:useDefaultMargins="true">
+
+                            <!-- Service Item Shimmer 1 -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_columnWeight="1"
+                                android:orientation="vertical"
+                                android:padding="8dp"
+                                android:gravity="center">
+
+                                <View
+                                    android:layout_width="60dp"
+                                    android:layout_height="60dp"
+                                    android:background="@drawable/shimmer_corner_radius"
+                                    android:layout_marginBottom="8dp"/>
+
+                                <View
+                                    android:layout_width="80dp"
+                                    android:layout_height="12dp"
+                                    android:background="@drawable/shimmer_corner_radius"/>
+                            </LinearLayout>
+
+                            <!-- Service Item Shimmer 2 -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_columnWeight="1"
+                                android:orientation="vertical"
+                                android:padding="8dp"
+                                android:gravity="center">
+
+                                <View
+                                    android:layout_width="60dp"
+                                    android:layout_height="60dp"
+                                    android:background="@drawable/shimmer_corner_radius"
+                                    android:layout_marginBottom="8dp"/>
+
+                                <View
+                                    android:layout_width="80dp"
+                                    android:layout_height="12dp"
+                                    android:background="@drawable/shimmer_corner_radius"/>
+                            </LinearLayout>
+
+                            <!-- Service Item Shimmer 3 -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_columnWeight="1"
+                                android:orientation="vertical"
+                                android:padding="8dp"
+                                android:gravity="center">
+
+                                <View
+                                    android:layout_width="60dp"
+                                    android:layout_height="60dp"
+                                    android:background="@drawable/shimmer_corner_radius"
+                                    android:layout_marginBottom="8dp"/>
+
+                                <View
+                                    android:layout_width="80dp"
+                                    android:layout_height="12dp"
+                                    android:background="@drawable/shimmer_corner_radius"/>
+                            </LinearLayout>
+
+                            <!-- Service Item Shimmer 4 -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_columnWeight="1"
+                                android:orientation="vertical"
+                                android:padding="8dp"
+                                android:gravity="center">
+
+                                <View
+                                    android:layout_width="60dp"
+                                    android:layout_height="60dp"
+                                    android:background="@drawable/shimmer_corner_radius"
+                                    android:layout_marginBottom="8dp"/>
+
+                                <View
+                                    android:layout_width="80dp"
+                                    android:layout_height="12dp"
+                                    android:background="@drawable/shimmer_corner_radius"/>
+                            </LinearLayout>
+
+                            <!-- Service Item Shimmer 5 -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_columnWeight="1"
+                                android:orientation="vertical"
+                                android:padding="8dp"
+                                android:gravity="center">
+
+                                <View
+                                    android:layout_width="60dp"
+                                    android:layout_height="60dp"
+                                    android:background="@drawable/shimmer_corner_radius"
+                                    android:layout_marginBottom="8dp"/>
+
+                                <View
+                                    android:layout_width="80dp"
+                                    android:layout_height="12dp"
+                                    android:background="@drawable/shimmer_corner_radius"/>
+                            </LinearLayout>
+
+                            <!-- Service Item Shimmer 6 -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_columnWeight="1"
+                                android:orientation="vertical"
+                                android:padding="8dp"
+                                android:gravity="center">
+
+                                <View
+                                    android:layout_width="60dp"
+                                    android:layout_height="60dp"
+                                    android:background="@drawable/shimmer_corner_radius"
+                                    android:layout_marginBottom="8dp"/>
+
+                                <View
+                                    android:layout_width="80dp"
+                                    android:layout_height="12dp"
+                                    android:background="@drawable/shimmer_corner_radius"/>
+                            </LinearLayout>
+
+                        </GridLayout>
+                    </com.facebook.shimmer.ShimmerFrameLayout>
+
+                </FrameLayout>
+
+                <!-- Coins Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Coins Earned"
+                    android:textColor="@color/black"
+                    android:textSize="16dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_marginTop="15dp"
+                    android:layout_marginBottom="15dp"
+                    android:textStyle="bold" />
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <FrameLayout
+                        android:id="@+id/coinsEarnedLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="10dp"
+                        android:background="@drawable/bg_coins_card"
+                        android:elevation="4dp"
+                        android:clipToOutline="true">
+
+                        <!-- Card Content -->
+                        <LinearLayout
+                            android:orientation="vertical"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:padding="10dp">
+
+                            <LinearLayout
+                                android:orientation="horizontal"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:background="@drawable/bg_expiring_badge"
+                                android:paddingHorizontal="12dp"
+                                android:paddingVertical="5dp"
+                                android:layout_marginTop="6dp">
+
+                                <ImageView
+                                    android:layout_width="18dp"
+                                    android:layout_height="18dp"
+                                    android:src="@drawable/ic_trophy"
+                                    app:tint="@color/white" />
+
+                                <TextView
+                                    android:id="@+id/tvCoinsCount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="0 coins available"
+                                    android:textColor="#FFF"
+                                    android:textSize="13sp"
+                                    android:layout_marginStart="8dp"/>
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- Coins Stack Illustration -->
+                        <ImageView
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:src="@drawable/ic_coins_stack"
+                            android:layout_gravity="bottom|end"
+                            android:layout_marginEnd="10dp"
+                            android:layout_marginBottom="0dp"/>
+                    </FrameLayout>
+
+                    <!-- Coins Shimmer -->
+                    <com.facebook.shimmer.ShimmerFrameLayout
+                        android:id="@+id/shimmerCoins"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="10dp"
+                        android:visibility="gone"
+                        app:shimmer_auto_start="true"
+                        app:shimmer_base_color="#F3F3F3"
+                        app:shimmer_colored="true"
+                        app:shimmer_highlight_color="#E7E7E7">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="80dp"
+                            android:orientation="horizontal"
+                            android:padding="15dp"
+                            android:background="@drawable/shimmer_corner_radius">
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:orientation="vertical"
+                                android:gravity="center_vertical">
+
+                                <View
+                                    android:layout_width="120dp"
+                                    android:layout_height="16dp"
+                                    android:background="@drawable/shimmer_corner_radius"
+                                    android:layout_marginBottom="8dp"/>
+
+                                <View
+                                    android:layout_width="80dp"
+                                    android:layout_height="12dp"
+                                    android:background="@drawable/shimmer_corner_radius"/>
+                            </LinearLayout>
+
+                            <View
+                                android:layout_width="50dp"
+                                android:layout_height="50dp"
+                                android:background="@drawable/shimmer_corner_radius"
+                                android:layout_gravity="center"/>
+                        </LinearLayout>
+                    </com.facebook.shimmer.ShimmerFrameLayout>
+
+                </FrameLayout>
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                    android:layout_marginEnd="10dp"
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="30"
+                        android:layout_height="wrap_content"
+                        android:text="@string/our_offers"
+                        android:textColor="@color/black"
+                        android:textSize="16dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="10dp"
+                        android:layout_marginTop="15dp"
+                        android:layout_marginBottom="10dp"
+                        android:textStyle="bold" />
 
-                    android:clipToPadding="false"
-                    android:nestedScrollingEnabled="false"
-                    android:scrollbars="vertical" />
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/liveRide"
+                        android:visibility="gone"
+                        android:layout_width="58dp"
+                        android:layout_height="58dp"
+                        android:elevation="8dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginBottom="10dp"
+                        android:layout_marginEnd="15dp"
+                        app:cardCornerRadius="24dp">
 
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent">
 
+                            <ImageView
+                                android:id="@+id/app_logo"
+                                android:layout_width="55dp"
+                                android:layout_height="55dp"
+                                android:layout_centerInParent="true"
+                                android:src="@drawable/live_ride" />
 
-               <LinearLayout
-                   android:layout_width="match_parent"
-                   android:layout_height="wrap_content"
-                   android:gravity="center_vertical"
+                            <ProgressBar
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:layout_centerInParent="true"
+                                android:visibility="gone"
+                                android:indeterminateTintMode="src_atop"
+                                android:indeterminateTint="@color/colorPrimary"/>
+                        </RelativeLayout>
 
-                   android:orientation="horizontal">
+                    </androidx.cardview.widget.CardView>
 
-                   <TextView
-                       android:layout_width="0dp"
-                       android:layout_weight="30"
-                       android:layout_height="wrap_content"
-                       android:text="@string/our_offers"
-                       android:textColor="@color/black"
-                       android:textSize="16dp"
-                       android:layout_marginStart="10dp"
-                       android:layout_marginEnd="10dp"
-                       android:layout_marginTop="25dp"
-                       android:layout_marginBottom="25dp"
-                       android:textStyle="bold" />
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/scheduledRide"
+                        android:visibility="gone"
+                        android:layout_width="58dp"
+                        android:layout_height="58dp"
+                        android:elevation="8dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginBottom="10dp"
+                        android:layout_marginEnd="15dp"
+                        app:cardCornerRadius="24dp">
 
-                   <androidx.cardview.widget.CardView
-                       android:id="@+id/liveRide"
-                       android:visibility="gone"
-                       android:layout_width="58dp"
-                       android:layout_height="58dp"
-                       android:elevation="8dp"
-                       android:layout_marginEnd="15dp"
-                       app:cardCornerRadius="24dp">
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent">
 
-                       <RelativeLayout
-                           android:layout_width="match_parent"
-                           android:layout_height="match_parent">
+                            <ImageView
 
-                           <ImageView
-                               android:id="@+id/app_logo"
-                               android:layout_width="55dp"
-                               android:layout_height="55dp"
-                               android:layout_centerInParent="true"
-                               android:src="@drawable/live_ride" />
+                                android:layout_width="50dp"
+                                android:layout_height="50dp"
+                                android:layout_centerInParent="true"
+                                android:src="@drawable/scheduled_ride" />
 
-                           <ProgressBar
-                               android:layout_width="48dp"
-                               android:layout_height="48dp"
-                               android:layout_centerInParent="true"
-                               android:visibility="gone"
-                               android:indeterminateTintMode="src_atop"
-                               android:indeterminateTint="@color/colorPrimary"/>
-                       </RelativeLayout>
+                            <ProgressBar
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:layout_centerInParent="true"
+                                android:visibility="gone"
+                                android:indeterminateTintMode="src_atop"
+                                android:indeterminateTint="@color/colorPrimary"/>
+                        </RelativeLayout>
 
-                   </androidx.cardview.widget.CardView>
-               </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+                </LinearLayout>
 
-                <com.kapstranspvtltd.kaps.utility.CustomRecyclerView
-                    android:id="@+id/recyclerBanner"
+                <!-- Offers Section -->
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:layout_marginEnd="10dp"
-                    android:clipToPadding="false"
-                    android:nestedScrollingEnabled="false"
-                    android:scrollbars="vertical" />
+                    android:layout_height="wrap_content">
 
+                    <com.kapstranspvtltd.kaps.utility.CustomRecyclerView
+                        android:id="@+id/recyclerBanner"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="10dp"
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"
+                        android:scrollbars="vertical" />
+
+                    <!-- Offers Shimmer -->
+                    <com.facebook.shimmer.ShimmerFrameLayout
+                        android:id="@+id/shimmerOffers"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="10dp"
+                        android:visibility="gone"
+                        app:shimmer_auto_start="true"
+                        app:shimmer_base_color="#F3F3F3"
+                        app:shimmer_colored="true"
+                        app:shimmer_highlight_color="#E7E7E7">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:padding="5dp">
+
+                            <View
+                                android:layout_width="250dp"
+                                android:layout_height="120dp"
+                                android:layout_marginEnd="10dp"
+                                android:background="@drawable/shimmer_corner_radius"/>
+
+                            <View
+                                android:layout_width="250dp"
+                                android:layout_height="120dp"
+                                android:layout_marginEnd="10dp"
+                                android:background="@drawable/shimmer_corner_radius"/>
+
+                            <View
+                                android:layout_width="250dp"
+                                android:layout_height="120dp"
+                                android:background="@drawable/shimmer_corner_radius"/>
+                        </LinearLayout>
+                    </com.facebook.shimmer.ShimmerFrameLayout>
+
+                </FrameLayout>
 
                 <View
                     android:layout_width="match_parent"

@@ -260,13 +260,15 @@ public class GoodsOrdersFragment extends Fragment {
     }
 
     private void updateRecentBookingsUI(List<Booking> bookings) {
-        if (bookings == null || bookings.isEmpty()) {
-            binding.recycleviewRecent.setVisibility(View.GONE);
-            binding.lvlNotfoundRecent.setVisibility(View.VISIBLE);
-        } else {
-            binding.recycleviewRecent.setVisibility(View.VISIBLE);
-            binding.lvlNotfoundRecent.setVisibility(View.GONE);
-            recentAdapter.setBookings(bookings);
+        if(binding!=null) {
+            if (bookings == null || bookings.isEmpty()) {
+                binding.recycleviewRecent.setVisibility(View.GONE);
+                binding.lvlNotfoundRecent.setVisibility(View.VISIBLE);
+            } else {
+                binding.recycleviewRecent.setVisibility(View.VISIBLE);
+                binding.lvlNotfoundRecent.setVisibility(View.GONE);
+                recentAdapter.setBookings(bookings);
+            }
         }
     }
 

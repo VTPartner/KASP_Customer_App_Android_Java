@@ -11,6 +11,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,11 +19,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.network.APIHelper;
 import com.kapstranspvtltd.kaps.network.VolleySingleton;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.CustPrograssbar;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
+import com.kapstranspvtltd.kaps.model.AppContent;
+import com.kapstranspvtltd.kaps.utility.AppContentManager;
 import com.kapstranspvtltd.kaps.databinding.ActivitySendOtpactivityBinding;
 
 import org.json.JSONArray;
@@ -58,6 +62,9 @@ public class SendOTPActivity extends AppCompatActivity {
         countryCode = getIntent().getStringExtra("countryCode");
         countryCode = "+91";
 
+        // Load dynamic content
+        loadDynamicContent();
+
         binding.txtMob.setText("We have sent you an SMS on " + countryCode + " " + mobileNumber + "\n with 6 digit verification code");
 
         sendOTP();
@@ -65,6 +72,50 @@ public class SendOTPActivity extends AppCompatActivity {
         setUpButtons();
         setupOtpPaste();
         updateEditTextInputTypes();
+    }
+
+    private void loadDynamicContent() {
+        AppContent otpContent = AppContentManager.getInstance(this)
+                .getFirstContentForScreen("otp");
+        
+        if (otpContent != null) {
+            // Load OTP screen content
+            ImageView otpImage = binding.otpImage;
+            
+            // Set image
+            if (otpImage != null && !otpContent.getImageUrl().equals("NA")) {
+                if (otpContent.getImageUrl().startsWith("http")) {
+                    com.bumptech.glide.Glide.with(this)
+                            .load(otpContent.getImageUrl())
+                            .placeholder(R.drawable.one1)
+                            .error(R.drawable.one1)
+                            .into(otpImage);
+                } else {
+                    // Handle local drawable resources
+                    try {
+                        int resourceId = getResources().getIdentifier(
+                                otpContent.getImageUrl().replace("@drawable/", ""),
+                                "drawable",
+                                getPackageName()
+                        );
+                        if (resourceId != 0) {
+                            otpImage.setImageResource(resourceId);
+                        }
+                    } catch (Exception e) {
+                        // Fallback to default image
+                        otpImage.setImageResource(R.drawable.one1);
+                    }
+                }
+            }
+            
+            System.out.println("OTP content loaded: " + otpContent.getTitle());
+            
+            // You can also update the description text if needed
+            if (!otpContent.getDescription().equals("NA")) {
+                // Update any relevant UI elements with dynamic content
+                System.out.println("OTP description: " + otpContent.getDescription());
+            }
+        }
     }
 
     private void setUpButtons() {

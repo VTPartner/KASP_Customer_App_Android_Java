@@ -655,7 +655,7 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
 
             // Calculate final amount (rounded)
             // Update final amount with adjusted price if available
-            finalAmount = adjustedPrice > 0 ? adjustedPrice : Math.round(netFare);
+            finalAmount = adjustedPrice > 0 ? adjustedPrice  : Math.round(netFare);
             binding.finalAmount.setText(String.format("₹%d", (int)finalAmount));
             binding.bottomTotalAmount.setText(String.format("₹%d", (int)finalAmount));
 
@@ -847,12 +847,13 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         try {
             requestBody.put("category_id", cabService ? 2 : 1); // Replace with your category ID
             requestBody.put("customer_id", customerId);
+            requestBody.put("vehicle_id", selectedVehicle.getVehicleId());
             requestBody.put("auth", fcmToken);
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
 
-        String url = APIClient.baseUrl + "get_all_guide_lines";
+        String url = APIClient.baseUrl + "get_all_guide_lines_for_vehicle";
 
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.POST,

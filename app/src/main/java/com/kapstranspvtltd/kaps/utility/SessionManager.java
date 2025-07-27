@@ -14,6 +14,8 @@ import java.util.List;
 public class SessionManager {
     public static List<Drop> dropList=new ArrayList<>();
     private final SharedPreferences mPrefs;
+
+    private  com.kapstranspvtltd.kaps.utility.PreferenceManager preferenceManager;
     SharedPreferences.Editor mEditor;
     public static String rtl = "rtl";
     public static String intro = "intro";
@@ -26,9 +28,10 @@ public class SessionManager {
     public static String contact = "contact";
     public static String language = "language";
 
+
     public SessionManager(Context context) {
 
-
+        preferenceManager = new com.kapstranspvtltd.kaps.utility.PreferenceManager(context);
         mPrefs = PreferenceManager.getDefaultSharedPreferences(context);
         mEditor = mPrefs.edit();
     }
@@ -85,4 +88,7 @@ public class SessionManager {
     }
 
 
+    public String getCustomerId() {
+        return  preferenceManager.getStringValue("customer_id", "");
+    }
 }

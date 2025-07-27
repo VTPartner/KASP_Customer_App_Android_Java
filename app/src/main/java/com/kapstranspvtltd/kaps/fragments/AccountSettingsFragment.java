@@ -10,9 +10,12 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.SplashScreenActivity;
 import com.kapstranspvtltd.kaps.activities.CustomerEditProfileActivity;
+import com.kapstranspvtltd.kaps.activities.EnterReferralActivity;
 import com.kapstranspvtltd.kaps.activities.HomeActivity;
+import com.kapstranspvtltd.kaps.activities.InviteEarnActivity;
 import com.kapstranspvtltd.kaps.activities.LoginActivity;
 import com.kapstranspvtltd.kaps.activities.WalletActivity;
 import com.kapstranspvtltd.kaps.coins.CoinsHomeScreenActivity;
@@ -23,6 +26,8 @@ import com.kapstranspvtltd.kaps.jcb_crane_customer_app.activities.bookings.AllJc
 import com.kapstranspvtltd.kaps.language_change_utils.BaseFragment;
 import com.kapstranspvtltd.kaps.language_change_utils.LocaleHelper;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
+import com.kapstranspvtltd.kaps.model.AppContent;
+import com.kapstranspvtltd.kaps.utility.AppContentManager;
 import com.kapstranspvtltd.kaps.databinding.FragmentAccountSettingsBinding;
 
 
@@ -51,6 +56,7 @@ public class AccountSettingsFragment extends BaseFragment {
         binding = FragmentAccountSettingsBinding.inflate(inflater, container, false);
         initView();
         setupClickListeners();
+        loadDynamicContent();
         return binding.getRoot();
     }
 
@@ -69,6 +75,13 @@ public class AccountSettingsFragment extends BaseFragment {
         binding.enjoyearnings.setOnClickListener(v->goToWalletPage());
         binding.rewardCoins.setOnClickListener(v->goToCoinHomePage());
         binding.inviteFriends.setOnClickListener(v->openToShareAppInviteLink());
+        binding.txtAddRefferalCode.setOnClickListener(v->goToAddRefferalCode());
+    }
+
+    private void goToAddRefferalCode() {
+        Intent intent = new Intent(getActivity(), EnterReferralActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK );
+        startActivity(intent);
     }
 
     private void goToCoinHomePage() {
@@ -84,7 +97,11 @@ public class AccountSettingsFragment extends BaseFragment {
     }
 
     private void openToShareAppInviteLink() {
-        String appUrl = "https://play.google.com/store/apps/details?id=com.kapstranspvtltd.kaps&hl=en_IN";
+        Intent intent = new Intent(getActivity(), InviteEarnActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK );
+        startActivity(intent);
+
+        /*String appUrl = "https://play.google.com/store/apps/details?id=com.kapstranspvtltd.kaps&hl=en_IN";
 
         Intent shareIntent = new Intent(Intent.ACTION_SEND);
         shareIntent.setType("text/plain");
@@ -92,6 +109,8 @@ public class AccountSettingsFragment extends BaseFragment {
         shareIntent.putExtra(Intent.EXTRA_TEXT, "Experience seamless transportation and on-demand services with the KAPS app! \uD83D\uDE80 Whether you need reliable Goods Delivery, Cab Booking, JCB & Crane Services, Professional Drivers, or skilled Handyman Services, KAPS has you covered. Download now and simplify your daily needs with just a few taps! \uD83D\uDD17 Get the app here: " + appUrl);
 
         startActivity(Intent.createChooser(shareIntent, "Share via"));
+
+         */
     }
 
 
@@ -254,5 +273,112 @@ public class AccountSettingsFragment extends BaseFragment {
     private void clearAllUserData() {
         // Clear all relevant preferences
         preferenceManager.clearPreferences();
+    }
+
+    private void loadDynamicContent() {
+        // Load invite friends content
+        AppContent inviteContent = AppContentManager.getInstance(requireContext())
+                .getFirstContentForScreen("invite_friends");
+        
+        if (inviteContent != null) {
+            // Set invite friends text
+            if (binding.inviteFriendsText != null && !inviteContent.getTitle().equals("NA")) {
+                binding.inviteFriendsText.setText(inviteContent.getTitle());
+            }
+            
+            // Set invite friends image
+            if (binding.inviteFriendsImage != null && !inviteContent.getImageUrl().equals("NA")) {
+                if (inviteContent.getImageUrl().startsWith("http")) {
+                    com.bumptech.glide.Glide.with(this)
+                            .load(inviteContent.getImageUrl())
+                            .placeholder(R.drawable.invite_friends)
+                            .error(R.drawable.invite_friends)
+                            .into(binding.inviteFriendsImage);
+                } else {
+                    try {
+                        int resourceId = getResources().getIdentifier(
+                                inviteContent.getImageUrl().replace("@drawable/", ""),
+                                "drawable",
+                                requireContext().getPackageName()
+                        );
+                        if (resourceId != 0) {
+                            binding.inviteFriendsImage.setImageResource(resourceId);
+                        }
+                    } catch (Exception e) {
+                        binding.inviteFriendsImage.setImageResource(R.drawable.invite_friends);
+                    }
+                }
+            }
+        }
+
+        // Load KAPS coins content 
+        AppContent coinsContent = AppContentManager.getInstance(requireContext())
+                .getFirstContentForScreen("kaps_coin"); 
+        
+        if (coinsContent != null) {
+            // Set KAPS coins text
+            if (binding.rewardCoinsText != null && !coinsContent.getTitle().equals("NA")) {
+                binding.rewardCoinsText.setText(coinsContent.getTitle());
+            }
+            
+            // Set KAPS coins image
+            if (binding.rewardCoinsImage != null && !coinsContent.getImageUrl().equals("NA")) {
+                if (coinsContent.getImageUrl().startsWith("http")) {
+                    com.bumptech.glide.Glide.with(this)
+                            .load(coinsContent.getImageUrl())
+                            .placeholder(R.drawable.ic_coins_stack)
+                            .error(R.drawable.ic_coins_stack)
+                            .into(binding.rewardCoinsImage);
+                } else {
+                    try {
+                        int resourceId = getResources().getIdentifier(
+                                coinsContent.getImageUrl().replace("@drawable/", ""),
+                                "drawable",
+                                requireContext().getPackageName()
+                        );
+                        if (resourceId != 0) {
+                            binding.rewardCoinsImage.setImageResource(resourceId);
+                        }
+                    } catch (Exception e) {
+                        binding.rewardCoinsImage.setImageResource(R.drawable.ic_coins_stack);
+                    }
+                }
+            }
+        }
+
+        // Load enjoy earnings content 
+        AppContent earningsContent = AppContentManager.getInstance(requireContext())
+                .getFirstContentForScreen("enjoy_your_earning"); // Using same content for now
+        
+        if (earningsContent != null) {
+            // Set enjoy earnings text
+            if (binding.enjoyearningsText != null && !earningsContent.getTitle().equals("NA")) {
+                binding.enjoyearningsText.setText(earningsContent.getTitle());
+            }
+            
+            // Set enjoy earnings image
+            if (binding.enjoyearningsImage != null && !earningsContent.getImageUrl().equals("NA")) {
+                if (earningsContent.getImageUrl().startsWith("http")) {
+                    com.bumptech.glide.Glide.with(this)
+                            .load(earningsContent.getImageUrl())
+                            .placeholder(R.drawable.earn_money)
+                            .error(R.drawable.earn_money)
+                            .into(binding.enjoyearningsImage);
+                } else {
+                    try {
+                        int resourceId = getResources().getIdentifier(
+                                earningsContent.getImageUrl().replace("@drawable/", ""),
+                                "drawable",
+                                requireContext().getPackageName()
+                        );
+                        if (resourceId != 0) {
+                            binding.enjoyearningsImage.setImageResource(resourceId);
+                        }
+                    } catch (Exception e) {
+                        binding.enjoyearningsImage.setImageResource(R.drawable.earn_money);
+                    }
+                }
+            }
+        }
     }
 }

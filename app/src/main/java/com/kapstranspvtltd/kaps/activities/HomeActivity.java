@@ -158,7 +158,7 @@ public class HomeActivity extends BaseActivity implements BottomNavigationView.O
                     preferenceManager.saveStringValue("fcm_token",token);
 
                     // Upload token to server
-                    updateAuthToken(token);
+//                    updateAuthToken(token);
                 });
     }
 
@@ -215,12 +215,40 @@ public class HomeActivity extends BaseActivity implements BottomNavigationView.O
         try {
             FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
             transaction.replace(R.id.container, fragment, tag);
-            transaction.addToBackStack(null);
+            // Don't add HomeSelectFragment to back stack to prevent blank screen issue
+            if (!(fragment instanceof HomeSelectFragment)) {
+                transaction.addToBackStack(null);
+            }
             transaction.commit();
         } catch (Exception e) {
             Log.e("Error", "-->" + e.getMessage());
         }
+    }
 
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        // Get the current fragment
+        Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.container);
+
+        if (currentFragment instanceof HomeSelectFragment) {
+            // If we're on HomeSelectFragment, show exit dialog or finish activity
+            showExitDialog();
+        } else {
+            // For other fragments, navigate back to home
+            openFragment(new HomeSelectFragment(), "Home");
+        }
+    }
+
+    private void showExitDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Exit App")
+                .setMessage("Are you sure you want to exit?")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    finish();
+                })
+                .setNegativeButton("No", null)
+                .show();
     }
 
     @Override
@@ -239,9 +267,11 @@ public class HomeActivity extends BaseActivity implements BottomNavigationView.O
             }
         } else if (itemId == R.id.navigation_goods_orders) {
             openFragmentIfLoggedIn(new GoodsOrdersFragment(), "Goods");
-        } else if (itemId == R.id.navigation_cab_orders) {
-            openFragmentIfLoggedIn(new CabOrdersFragment(), "Cab");
-        } else if (itemId == R.id.navigation_user) {
+        }
+//        else if (itemId == R.id.navigation_cab_orders) {
+//            openFragmentIfLoggedIn(new CabOrdersFragment(), "Cab");
+//        }
+        else if (itemId == R.id.navigation_user) {
             openFragmentIfLoggedIn(new AccountSettingsFragment(), "Account");
         } else {
             return false;

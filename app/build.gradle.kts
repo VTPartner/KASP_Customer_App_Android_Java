@@ -39,6 +39,8 @@ android {
 }
 
 dependencies {
+
+
     implementation ("androidx.lifecycle:lifecycle-viewmodel:2.8.7")
     implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
     implementation("androidx.appcompat:appcompat:1.7.0")
@@ -89,4 +91,7 @@ dependencies {
 
     //RazorPay
     implementation ("com.razorpay:checkout:1.6.41")
+
+    //Lottie animation
+    implementation ("com.airbnb.android:lottie:3.4.0")
 }

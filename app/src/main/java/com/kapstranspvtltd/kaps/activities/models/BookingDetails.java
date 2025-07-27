@@ -2,6 +2,8 @@ package com.kapstranspvtltd.kaps.activities.models;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import org.json.JSONObject;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -428,6 +430,8 @@ public class BookingDetails {
             // Goods specific stages
             case "Start Trip":
                 return "Pickup done - On the way to deliver";
+            case "Confirm Reached Drop":
+                return "Reached Drop Location - Unloading started";
             case "Reached Drop Location 1":
                 return "Reached first drop location";
             case "Reached Drop Location 2":
@@ -509,4 +513,24 @@ public class BookingDetails {
         // Add your logic to determine if this is a handyman service
         return serviceType != null && serviceType.equals("handyman");
     }
+
+    private JSONObject waitingTimeInfo;
+    public void setWaitingTimeInfo(JSONObject waitingTimeInfo) { this.waitingTimeInfo = waitingTimeInfo; }
+    public JSONObject getWaitingTimeInfo() { return waitingTimeInfo; }
+    
+    // Loading wait time fields
+        private long loadingWaitStartTime;
+    private long loadingWaitEndTime;
+    private String unloadingWaitStartTimes;
+    private String unloadingWaitEndTimes;
+
+    public long getLoadingWaitStartTime() { return loadingWaitStartTime; }
+    public void setLoadingWaitStartTime(long loadingWaitStartTime) { this.loadingWaitStartTime = loadingWaitStartTime; }
+    public long getLoadingWaitEndTime() { return loadingWaitEndTime; }
+    public void setLoadingWaitEndTime(long loadingWaitEndTime) { this.loadingWaitEndTime = loadingWaitEndTime; }
+    
+    public String getUnloadingWaitStartTimes() { return unloadingWaitStartTimes; }
+    public void setUnloadingWaitStartTimes(String unloadingWaitStartTimes) { this.unloadingWaitStartTimes = unloadingWaitStartTimes; }
+    public String getUnloadingWaitEndTimes() { return unloadingWaitEndTimes; }
+    public void setUnloadingWaitEndTimes(String unloadingWaitEndTimes) { this.unloadingWaitEndTimes = unloadingWaitEndTimes; }
 }

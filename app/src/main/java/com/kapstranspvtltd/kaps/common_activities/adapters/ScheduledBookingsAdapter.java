@@ -68,9 +68,27 @@ public class ScheduledBookingsAdapter extends RecyclerView.Adapter<ScheduledBook
 
         void bind(ScheduledBooking booking) {
             // Format and display scheduled date and time
-            String scheduledDateTime = formatDateTime(booking.getScheduled_time());
-            System.out.println("scheduledDateTime::"+scheduledDateTime);
-            binding.txtDate.setText(scheduledDateTime);
+//            String scheduledDateTime = formatDateTime(booking.getScheduled_time());
+//            System.out.println("scheduledDateTime::"+scheduledDateTime);
+//            binding.txtDate.setText(scheduledDateTime);
+            String originalTime = booking.getScheduled_time(); // Example: "2025-05-22 10:48:00"
+
+            try {
+                // Parse the original 24-hour format
+                SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+                Date date = inputFormat.parse(originalTime);
+
+                // Convert to 12-hour format with AM/PM
+                SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault());
+                String formattedTime = outputFormat.format(date);
+
+                // Set to your TextView
+                binding.txtDate.setText(formattedTime);  // Output: "22 May 2025, 10:48 AM"
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                binding.txtDate.setText(originalTime); // fallback
+            }
 
             // Set service type and name
             String serviceType = booking.getService_name().isEmpty() ? 

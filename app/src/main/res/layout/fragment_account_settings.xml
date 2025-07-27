@@ -141,12 +141,14 @@
                 android:padding="5dp">
 
                 <ImageView
+                    android:id="@+id/invite_friends_image"
                     android:layout_width="wrap_content"
                     android:layout_height="100dp"
                     android:padding="5dp"
                     android:src="@drawable/invite_friends" />
 
                 <TextView
+                    android:id="@+id/invite_friends_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
@@ -192,12 +194,13 @@
                 android:padding="5dp">
 
                 <ImageView
+                    android:id="@+id/reward_coins_image"
                     android:layout_width="wrap_content"
                     android:layout_height="100dp"
-
                     android:src="@drawable/ic_coins_stack" />
 
                 <TextView
+                    android:id="@+id/reward_coins_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
@@ -218,12 +221,14 @@
                 android:padding="5dp">
 
                 <ImageView
+                    android:id="@+id/enjoyearnings_image"
                     android:layout_width="wrap_content"
                     android:layout_height="100dp"
                     android:padding="5dp"
                     android:src="@drawable/earn_money" />
 <!--                android:src="@drawable/ref3" />-->
                 <TextView
+                    android:id="@+id/enjoyearnings_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
@@ -293,6 +298,56 @@
                 android:paddingRight="10dp"
                 android:paddingBottom="5dp"
                 android:text="@string/share"
+                android:textColor="@color/white"
+                android:textSize="14dp" />
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="10dp"
+            android:background="@color/colorgrey0" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="10dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center|left"
+                    android:padding="5dp"
+                    android:text="Earn using referral code"
+                    android:textColor="@color/black"
+                    android:textSize="14dp"
+                    android:textStyle="bold" />
+
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/txt_add_refferal_code"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="10dp"
+                android:background="@drawable/rounded_button"
+                android:backgroundTint="@color/colorPrimaryDark"
+                android:drawableRight="@drawable/ic_more"
+                android:drawableTint="@color/white"
+                android:gravity="center"
+                android:paddingLeft="10dp"
+                android:paddingTop="5dp"
+                android:paddingRight="10dp"
+                android:paddingBottom="5dp"
+                android:text="Earn"
                 android:textColor="@color/white"
                 android:textSize="14dp" />
 
@@ -402,6 +457,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="10dp"
+            android:visibility="gone"
             android:background="@color/colorgrey0" />
 
 <!--        jcb crane rides-->
@@ -409,6 +465,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
+            android:visibility="gone"
             android:orientation="horizontal"
             android:padding="10dp">
 
@@ -455,11 +512,13 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="10dp"
+            android:visibility="gone"
             android:background="@color/colorgrey0" />
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
+            android:visibility="gone"
             android:orientation="horizontal"
             android:padding="10dp">
 
@@ -504,12 +563,14 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="10dp"
+            android:visibility="gone"
             android:background="@color/colorgrey0" />
         <!--        Handyman Services-->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
+            android:visibility="gone"
             android:orientation="horizontal"
             android:padding="10dp">
 

@@ -90,7 +90,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?android:attr/selectableItemBackground"
+                android:background="@drawable/rounded_button"
                 android:gravity="center"
                 android:orientation="horizontal"
                 android:elevation="4dp"
@@ -107,6 +107,7 @@
                         android:layout_height="wrap_content"
                         android:padding="5dp"
                         android:src="@drawable/cash"
+
                         />
                 </LinearLayout>
 
@@ -124,7 +125,7 @@
                         android:textSize="12dp"
                         android:padding="2dp"
                         android:text="Pay on Delivery"
-                        android:textColor="@color/black"
+                        android:textColor="@color/white"
                         android:textStyle="bold" />
 
                     <TextView
@@ -133,10 +134,22 @@
                         android:layout_height="wrap_content"
                         android:maxLines="2"
                         android:padding="2dp"
-                        android:textColor="@color/colorgrey3"
+                        android:textColor="@color/light_blue"
                         android:text="You can pay after receiving the service or product at your doorstep."
                         android:textSize="10dp"
                         android:textStyle="normal" />
+
+                    <TextView
+
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:maxLines="2"
+                        android:padding="4dp"
+                        android:textAlignment="center"
+                        android:textColor="@color/white"
+                        android:text="Book Now"
+                        android:textSize="12dp"
+                        android:textStyle="bold" />
 
 
                 </LinearLayout>

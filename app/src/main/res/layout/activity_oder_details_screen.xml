@@ -676,7 +676,7 @@
                     android:gravity="center"
                     android:layout_marginEnd="5dp"
                     android:padding="5dp"
-                    android:text="Share Invoice"
+                    android:text="Download Invoice"
                     android:textColor="@color/white"
                     android:textSize="12dp" />
 </LinearLayout>

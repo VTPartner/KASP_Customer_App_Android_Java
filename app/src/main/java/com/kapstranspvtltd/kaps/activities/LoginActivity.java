@@ -14,6 +14,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -24,12 +25,16 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.kapstranspvtltd.kaps.model.CountryCodeItem;
+import com.kapstranspvtltd.kaps.model.AppContent;
+import com.kapstranspvtltd.kaps.utility.AppContentManager;
 import com.kapstranspvtltd.kaps.utility.CustPrograssbar;
 import com.kapstranspvtltd.kaps.utility.SessionManager;
 import com.kapstranspvtltd.kaps.utility.Utility;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.databinding.ActivityLoginBinding;
 
+import android.content.Intent;
+import android.net.Uri;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,11 +54,58 @@ public class LoginActivity extends AppCompatActivity {
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        // Load dynamic content
+        loadDynamicContent();
 
         setupClickListeners();
         setupLocationServices();
         getCountryCodes();
         setupMobileValidation();
+        updateContinueButtonAppearance(false);
+    }
+
+    private void loadDynamicContent() {
+        AppContent loginContent = AppContentManager.getInstance(this)
+                .getFirstContentForScreen("login");
+        
+        if (loginContent != null) {
+            // Load login screen content
+            ImageView loginImage = binding.loginImage;
+            TextView loginDescription = binding.loginDescription;
+            
+            // Set description
+            if (loginDescription != null && !loginContent.getDescription().equals("NA")) {
+                loginDescription.setText(loginContent.getDescription());
+            }
+            
+            // Set image
+            if (loginImage != null && !loginContent.getImageUrl().equals("NA")) {
+                if (loginContent.getImageUrl().startsWith("http")) {
+                    com.bumptech.glide.Glide.with(this)
+                            .load(loginContent.getImageUrl())
+                            .placeholder(R.drawable.logo)
+                            .error(R.drawable.logo)
+                            .into(loginImage);
+                } else {
+                    // Handle local drawable resources
+                    try {
+                        int resourceId = getResources().getIdentifier(
+                                loginContent.getImageUrl().replace("@drawable/", ""),
+                                "drawable",
+                                getPackageName()
+                        );
+                        if (resourceId != 0) {
+                            loginImage.setImageResource(resourceId);
+                        }
+                    } catch (Exception e) {
+                        // Fallback to default image
+                        loginImage.setImageResource(R.drawable.logo);
+                    }
+                }
+            }
+            
+            System.out.println("Login content loaded: " + loginContent.getTitle());
+        }
     }
 
     private void setupLocationServices() {
@@ -142,7 +194,25 @@ public class LoginActivity extends AppCompatActivity {
     private void setupClickListeners() {
         binding.imgBack.setOnClickListener(v -> finish());
 
+        // Terms and Conditions click listener
+        binding.txtTermsConditions.setOnClickListener(v -> {
+            openUrl("https://www.kaps9.in/terms&conditions");
+        });
+
+
+
+        // Checkbox listener
+        binding.checkboxTerms.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            binding.txtContinue.setEnabled(isChecked);
+            updateContinueButtonAppearance(isChecked);
+        });
+
         binding.txtContinue.setOnClickListener(v -> {
+            if (!binding.checkboxTerms.isChecked()) {
+                Toast.makeText(this, "Please accept the terms and conditions", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
             if (isValidMobileNumber(binding.edMobile.getText().toString())) {
                 String mobileNumber = binding.edMobile.getText().toString();
                 String countryCode = codeSelect; // Get selected country code
@@ -155,6 +225,26 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
     }
+
+    private void openUrl(String url) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(this, "Unable to open link", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void updateContinueButtonAppearance(boolean isEnabled) {
+        if (isEnabled) {
+            binding.txtContinue.setBackground(getResources().getDrawable(R.drawable.rounded_button));
+            binding.txtContinue.setTextColor(getResources().getColor(R.color.white));
+        } else {
+            binding.txtContinue.setBackground(getResources().getDrawable(R.drawable.rounded_button_disabled));
+            binding.txtContinue.setTextColor(getResources().getColor(R.color.white));
+        }
+    }
+
 
     private boolean isValidMobileNumber(String mobile) {
         if (TextUtils.isEmpty(mobile)) {

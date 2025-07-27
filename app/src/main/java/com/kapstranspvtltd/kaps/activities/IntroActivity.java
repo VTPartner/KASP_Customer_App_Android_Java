@@ -14,9 +14,14 @@ import androidx.viewpager.widget.ViewPager;
 import com.kapstranspvtltd.kaps.fragments.Info1Fragment;
 import com.kapstranspvtltd.kaps.fragments.Info2Fragment;
 import com.kapstranspvtltd.kaps.fragments.Info3Fragment;
+import com.kapstranspvtltd.kaps.model.AppContent;
+import com.kapstranspvtltd.kaps.utility.AppContentManager;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 import com.kapstranspvtltd.kaps.utility.SessionManager;
 import com.kapstranspvtltd.kaps.databinding.ActivityIntroBinding;
+
+import java.util.List;
+import java.util.Map;
 
 
 public class IntroActivity extends AppCompatActivity {
@@ -48,32 +53,75 @@ public class IntroActivity extends AppCompatActivity {
             return;
         }
 
-        // Setup ViewPager and DotsIndicator
-        vpPager.setAdapter(adapterViewPager);
-        binding.dotsIndicator.setViewPager(vpPager);
+        // Load app content and setup ViewPager
+        loadAppContent();
+    }
 
-        // Setup click listener
-        binding.lvlPhone.setOnClickListener(v -> {
-            preferenceManager.saveBooleanValue("firstRun",true);
-            startActivity(new Intent(IntroActivity.this, LoginActivity.class));
-        });
-
-        // Setup page change listener
-        vpPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+    private void loadAppContent() {
+        AppContentManager.getInstance(this).fetchAppContent(this, new AppContentManager.AppContentCallback() {
             @Override
-            public void onPageScrolled(int position, float positionOffset,
-                                       int positionOffsetPixels) {
-                Log.e("data", "jsadlj");
+            public void onSuccess(Map<String, List<AppContent>> content) {
+                // Setup ViewPager and DotsIndicator
+                vpPager.setAdapter(adapterViewPager);
+                binding.dotsIndicator.setViewPager(vpPager);
+
+                // Setup click listener
+                binding.lvlPhone.setOnClickListener(v -> {
+                    preferenceManager.saveBooleanValue("firstRun",true);
+                    startActivity(new Intent(IntroActivity.this, LoginActivity.class));
+                });
+
+                // Setup page change listener
+                vpPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+                    @Override
+                    public void onPageScrolled(int position, float positionOffset,
+                                               int positionOffsetPixels) {
+                        Log.e("data", "jsadlj");
+                    }
+
+                    @Override
+                    public void onPageSelected(int position) {
+                        // Handle page selection if needed
+                    }
+
+                    @Override
+                    public void onPageScrollStateChanged(int state) {
+                        Log.e("sjlkj", "sjahdal");
+                    }
+                });
             }
 
             @Override
-            public void onPageSelected(int position) {
-                // Handle page selection if needed
-            }
+            public void onError(String error) {
+                Log.e("IntroActivity", "Error loading app content: " + error);
+                // Setup with default content
+                vpPager.setAdapter(adapterViewPager);
+                binding.dotsIndicator.setViewPager(vpPager);
 
-            @Override
-            public void onPageScrollStateChanged(int state) {
-                Log.e("sjlkj", "sjahdal");
+                // Setup click listener
+                binding.lvlPhone.setOnClickListener(v -> {
+                    preferenceManager.saveBooleanValue("firstRun",true);
+                    startActivity(new Intent(IntroActivity.this, LoginActivity.class));
+                });
+
+                // Setup page change listener
+                vpPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+                    @Override
+                    public void onPageScrolled(int position, float positionOffset,
+                                               int positionOffsetPixels) {
+                        Log.e("data", "jsadlj");
+                    }
+
+                    @Override
+                    public void onPageSelected(int position) {
+                        // Handle page selection if needed
+                    }
+
+                    @Override
+                    public void onPageScrollStateChanged(int state) {
+                        Log.e("sjlkj", "sjahdal");
+                    }
+                });
             }
         });
     }

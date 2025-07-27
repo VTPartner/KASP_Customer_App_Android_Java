@@ -30,9 +30,14 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -101,6 +106,15 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -114,6 +128,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import android.os.CountDownTimer;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -124,6 +139,11 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
     private List<LatLng> polylinePoints = new ArrayList<>();
     private Handler locationUpdateHandler = new Handler();
     private static final int LOCATION_UPDATE_INTERVAL = 1000; // 1 seconds
+
+    // Route following variables
+    private List<LatLng> currentRoutePoints = new ArrayList<>();
+    private int currentRouteIndex = 0;
+    private boolean isFollowingRoute = false;
 
     private String bookingId;
     private String customerId;
@@ -146,6 +166,24 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
     double penaltyCharges = 0;
     String vehicleMapImage = "";
     double hikePrice = 0;
+
+    private Handler loadingTimerHandler = new Handler();
+    private Runnable loadingTimerRunnable;
+    private long loadingEndTime = 0;
+
+    private Handler unloadingTimerHandler = new Handler();
+    private Runnable unloadingTimerRunnable;
+    private long unloadingEndTime = 0;
+
+    private CountDownTimer loadingCountDownTimer;
+    private CountDownTimer unloadingCountDownTimer;
+
+    // Full-screen map variables
+    private boolean isMapFullScreen = false;
+    private View originalMapParent;
+    private int originalMapHeight;
+    private int originalMapWidth;
+    private ViewGroup.LayoutParams originalMapParams;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -201,6 +239,12 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
 
             v.getContext().startActivity(Intent.createChooser(shareIntent, "Share your KAPS booking via"));
         });
+
+        // Add full-screen map toggle - we'll add this to the map fragment's view
+        addFullScreenMapToggle();
+        
+        // Add full-screen indicator overlay
+        addFullScreenIndicator();
 
 
 
@@ -508,12 +552,11 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
         double penaltyAmount = 0;
 
         if (!cabService && bookingDetails != null) {
-            // Get penalty amount from preferences
+            // Get penalty amount from API (already set in bookingDetails)
             penaltyAmount = bookingDetails.getPenaltyAmount();
-//            penaltyAmount = preferenceManager.getFloatValue(
-//                    "customer_penalty_amount_" + bookingId, 0.0f);
+            // Remove/comment any use of preferences for penalty
+            // penaltyAmount = preferenceManager.getFloatValue("customer_penalty_amount_" + bookingId, 0.0f);
 
-            //Showing Wallet Amount if Used
             double walletAmount = bookingDetails.getWalletAmount();
             if(walletAmount>0){
                 dialogBinding.walletLyt.setVisibility(View.VISIBLE);
@@ -521,32 +564,19 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
             }else{
                 dialogBinding.walletLyt.setVisibility(View.GONE);
             }
-
-            // Base fare is the original amount before penalty
             double baseFare = totalAmount;
-
-
-            // Add penalty to get final total
             if (penaltyAmount > 0) {
-                binding.txtPenaltyInfo.setVisibility(View.VISIBLE);
-                binding.txtPenaltyInfo.setText("₹" + Math.round(penaltyAmount));
                 totalAmount += penaltyAmount;
-
-                // Show penalty breakdown
                 dialogBinding.penaltyContainer.setVisibility(View.VISIBLE);
                 dialogBinding.baseFareValue.setVisibility(View.VISIBLE);
                 dialogBinding.penaltyValue.setText("₹" + Math.round(penaltyAmount));
-                dialogBinding.baseFareValue.setText("Base Fare ₹" + Math.round(baseFare));
+                dialogBinding.baseFareValue.setText("Estimation Fare ₹" + Math.round(baseFare));
             } else {
                 dialogBinding.penaltyContainer.setVisibility(View.GONE);
                 dialogBinding.baseFareValue.setVisibility(View.GONE);
-                binding.txtPenaltyInfo.setVisibility(View.GONE);
             }
         }
-
-        // Show final total amount
         dialogBinding.amountValue.setText("₹" + Math.round(totalAmount));
-
         dialogBinding.cancelButton.setOnClickListener(v -> dialog.dismiss());
         if(dialog!=null)
             dialog.show();
@@ -561,6 +591,12 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
 
     @Override
     public void onBackPressed() {
+        // If in full-screen map mode, exit full-screen first
+        if (isMapFullScreen) {
+            exitFullScreenMap();
+            return;
+        }
+        
         super.onBackPressed();
         if (isFromFCM) {
 
@@ -592,8 +628,12 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
                     try {
                         JSONObject result = response.getJSONArray("results").getJSONObject(0);
                         bookingDetails = parseBookingDetails(result);
-
+                        if (result.has("waiting_time_info")) {
+                            JSONObject waitingInfo = result.getJSONObject("waiting_time_info");
+                            bookingDetails.setWaitingTimeInfo(waitingInfo);
+                        }
                         updateUI();
+                        showWaitingPenaltyInfo();
                         if(bookingDetails.getBookingStatus().equalsIgnoreCase("Cancelled") == false) {
 
                             startLocationUpdates();
@@ -613,6 +653,566 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
                 });
 
         VolleySingleton.getInstance(this).addToRequestQueue(request);
+    }
+
+    private void fetchDriverRatings() {
+        if (bookingDetails == null || bookingDetails.getDriverId() == null) {
+            return;
+        }
+
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+        JSONObject params = new JSONObject();
+        try {
+            params.put("driver_id", bookingDetails.getDriverId());
+            params.put("auth", fcmToken);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        JsonObjectRequest request = new JsonObjectRequest(
+                Request.Method.POST,
+                APIClient.baseUrl + "get_driver_rating_summary",
+                params,
+                response -> {
+                    try {
+                        if (response.getBoolean("success")) {
+                            JSONObject summary = response.getJSONObject("summary");
+                            double averageRating = summary.optDouble("average_rating", 0.0);
+                            int totalRatings = summary.optInt("total_ratings", 0);
+                            
+                            // Update the driver profile with rating
+                            updateDriverProfileWithRating(averageRating, totalRatings);
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                },
+                error -> {
+                    // Handle error silently - don't show error for ratings
+                    Log.e("DriverRatings", "Error fetching driver ratings", error);
+                }
+        );
+
+        VolleySingleton.getInstance(this).addToRequestQueue(request);
+    }
+
+    private void updateDriverProfileWithRating(double averageRating, int totalRatings) {
+        if (isFinishing() || isDestroyed()) return;
+        
+        // Create custom view with rating overlay
+        View driverProfileView = getLayoutInflater().inflate(R.layout.driver_profile_with_rating, null);
+        CircleImageView driverProfileImage = driverProfileView.findViewById(R.id.driver_profile_image);
+        TextView ratingText = driverProfileView.findViewById(R.id.driver_rating_text);
+        
+        // Load driver image
+        if (!TextUtils.isEmpty(bookingDetails.getDriverImage())) {
+            Glide.with(this)
+                    .load(bookingDetails.getDriverImage())
+                    .placeholder(R.drawable.placeholder)
+                    .error(R.drawable.placeholder)
+                    .override(60, 60)
+                    .into(driverProfileImage);
+        }
+        
+        // Set rating text
+        if (averageRating > 0) {
+            ratingText.setText(String.format(Locale.getDefault(), "%.1f", averageRating));
+        } else {
+            ratingText.setText("N/A");
+        }
+        
+        // Replace the existing driver image with the new view
+        if (binding.imgIcon.getParent() instanceof ViewGroup) {
+            ViewGroup parent = (ViewGroup) binding.imgIcon.getParent();
+            int index = parent.indexOfChild(binding.imgIcon);
+            parent.removeView(binding.imgIcon);
+            parent.addView(driverProfileView, index);
+        }
+    }
+
+    private void toggleFullScreenMap() {
+        if (isMapFullScreen) {
+            // Exit full-screen mode
+            exitFullScreenMap();
+        } else {
+            // Enter full-screen mode
+            enterFullScreenMap();
+        }
+    }
+
+    private void enterFullScreenMap() {
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        if (mapFragment == null || mapFragment.getView() == null) return;
+
+        View mapView = mapFragment.getView();
+
+        // Store original state
+        originalMapParent = (View) mapView.getParent();
+        originalMapParams = mapView.getLayoutParams();
+        originalMapHeight = mapView.getHeight();
+        originalMapWidth = mapView.getWidth();
+
+        // Get screen dimensions
+        int screenHeight = getResources().getDisplayMetrics().heightPixels;
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+
+        // Create full-screen layout params
+        ViewGroup.LayoutParams fullScreenParams = new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        );
+
+        // Remove from current parent and add to root layout
+        ViewGroup currentParent = (ViewGroup) mapView.getParent();
+        currentParent.removeView(mapView);
+
+        // Add to root layout (assuming the root is a FrameLayout or similar)
+        ViewGroup rootLayout = findViewById(android.R.id.content);
+        rootLayout.addView(mapView, fullScreenParams);
+
+        // Set full-screen flags
+        getWindow().setFlags(
+                WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN
+        );
+
+        // Hide system UI
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_FULLSCREEN |
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        );
+
+        // Add close button overlay
+        addFullScreenCloseButton();
+
+        isMapFullScreen = true;
+
+        // Hide full-screen indicator
+        hideFullScreenIndicator();
+
+        // Re-center map on driver location
+        if (driverMarker != null) {
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(driverMarker.getPosition(), 16));
+        }
+    }
+
+    private void exitFullScreenMap() {
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        if (mapFragment == null || mapFragment.getView() == null || originalMapParent == null) return;
+
+        View mapView = mapFragment.getView();
+
+        // Remove full-screen flags
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        // Show system UI
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+
+        // Remove close button
+        removeFullScreenCloseButton();
+
+        // Remove from root layout
+        ViewGroup rootLayout = findViewById(android.R.id.content);
+        rootLayout.removeView(mapView);
+
+        // Add back to original parent with original params
+        ViewGroup originalParent = (ViewGroup) originalMapParent;
+        originalParent.addView(mapView, originalMapParams);
+
+        isMapFullScreen = false;
+        
+        // Show full-screen indicator again
+        addFullScreenIndicator();
+    }
+
+    private void addFullScreenCloseButton() {
+        // Create close button
+        ImageButton closeButton = new ImageButton(this);
+        closeButton.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+        closeButton.setBackgroundResource(android.R.drawable.btn_default_small);
+        closeButton.setPadding(20, 20, 20, 20);
+
+        // Set layout params for top-right corner
+        FrameLayout.LayoutParams closeButtonParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        closeButtonParams.gravity = Gravity.TOP | Gravity.END;
+        closeButtonParams.setMargins(0, 50, 20, 0);
+
+        // Add click listener
+        closeButton.setOnClickListener(v -> exitFullScreenMap());
+
+        // Add to root layout
+        ViewGroup rootLayout = findViewById(android.R.id.content);
+        rootLayout.addView(closeButton, closeButtonParams);
+
+        // Store reference for later removal
+        closeButton.setTag("fullscreen_close_button");
+    }
+
+    private void removeFullScreenCloseButton() {
+        ViewGroup rootLayout = findViewById(android.R.id.content);
+        View closeButton = rootLayout.findViewWithTag("fullscreen_close_button");
+        if (closeButton != null) {
+            rootLayout.removeView(closeButton);
+        }
+    }
+
+    private void addFullScreenIndicator() {
+        // Create full-screen indicator button
+        ImageButton fullScreenButton = new ImageButton(this);
+        fullScreenButton.setImageResource(android.R.drawable.ic_menu_view);
+        fullScreenButton.setBackgroundResource(android.R.drawable.btn_default_small);
+        fullScreenButton.setPadding(12, 12, 12, 12);
+        fullScreenButton.setAlpha(0.7f); // Semi-transparent
+
+        // Set layout params for bottom-right corner of map
+        FrameLayout.LayoutParams indicatorParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        indicatorParams.gravity = Gravity.BOTTOM | Gravity.END;
+        indicatorParams.setMargins(0, 0, 16, 16);
+
+        // Add click listener
+        fullScreenButton.setOnClickListener(v -> toggleFullScreenMap());
+
+        // Add to map container
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        if (mapFragment != null && mapFragment.getView() != null) {
+            ViewGroup mapContainer = (ViewGroup) mapFragment.getView().getParent();
+            mapContainer.addView(fullScreenButton, indicatorParams);
+        }
+
+        // Store reference for later removal
+        fullScreenButton.setTag("fullscreen_indicator");
+    }
+
+    private void hideFullScreenIndicator() {
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        if (mapFragment != null && mapFragment.getView() != null) {
+            ViewGroup mapContainer = (ViewGroup) mapFragment.getView().getParent();
+            View indicator = mapContainer.findViewWithTag("fullscreen_indicator");
+            if (indicator != null) {
+                mapContainer.removeView(indicator);
+            }
+        }
+    }
+
+    private void addFullScreenMapToggle() {
+        // Get the map fragment's view and add click listener
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        if (mapFragment != null && mapFragment.getView() != null) {
+            mapFragment.getView().setOnClickListener(v -> toggleFullScreenMap());
+        }
+    }
+
+    private void showWaitingPenaltyInfo() {
+        JSONObject waitingInfo = bookingDetails.getWaitingTimeInfo();
+        System.out.println("waitingInfo::"+waitingInfo);
+        
+        // Debug: Print booking details to see what's available
+        if (bookingDetails != null) {
+            System.out.println("bookingDetails unloading start times: " + bookingDetails.getUnloadingWaitStartTimes());
+            System.out.println("bookingDetails unloading end times: " + bookingDetails.getUnloadingWaitEndTimes());
+            System.out.println("bookingDetails status: " + bookingDetails.getBookingStatus());
+            System.out.println("minimumWaitingTime: " + minimumWaitingTime);
+        }
+        
+        // Debug: Print waitingInfo keys to see what's available
+        if (waitingInfo != null) {
+            System.out.println("waitingInfo keys:");
+            Iterator<String> keys = waitingInfo.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                if (key.contains("unloading") || key.contains("wait")) {
+                    System.out.println("  Key: " + key + " = " + waitingInfo.opt(key));
+                }
+            }
+        }
+        
+        if (waitingInfo == null) {
+            binding.waitingPenaltyContainer.setVisibility(View.GONE);
+            return;
+        }
+
+        binding.waitingPenaltyContainer.setVisibility(View.VISIBLE);
+
+        double loadingWait = waitingInfo.optDouble("loading_wait", 0);
+        double allowedLoading = waitingInfo.optDouble("allowed_loading_wait", 0);
+        double loadingPenalty = waitingInfo.optDouble("loading_penalty", 0);
+        double totalPenalty = waitingInfo.optDouble("total_penalty", 0);
+        JSONArray unloadingWaits = waitingInfo.optJSONArray("unloading_waits");
+
+        // --- Loading Timer ---
+        // Get loading start and end times from the booking details
+        long loadingStart = bookingDetails.getLoadingWaitStartTime();
+        long loadingEnd = bookingDetails.getLoadingWaitEndTime();
+
+        if (loadingStart > 0 && loadingEnd == 0) {
+            // Timer is running - calculate remaining time
+            long now = System.currentTimeMillis();
+            long elapsed = (now - loadingStart * 1000) / 1000; // seconds
+            long allowedSeconds = (long) (allowedLoading * 60);
+
+            if (elapsed < allowedSeconds) {
+                // Timer is still running - show countdown
+                long left = allowedSeconds - elapsed;
+                startLoadingCountdown(left * 1000);
+            } else {
+                // Timer is in overage - show increasing overage time
+                long overage = elapsed - allowedSeconds;
+                startLoadingOverageTimer(overage * 1000);
+            }
+        } else {
+            stopLoadingTimer();
+            if (loadingWait >= allowedLoading) {
+                binding.loadingCountdown.setText("Loading Timer: Overage");
+            } else {
+                binding.loadingCountdown.setText("Loading Timer: Not running");
+            }
+        }
+
+        // --- Unloading Timer (for current drop) ---
+        // Get unloading data from bookingDetails (which comes from the main API response)
+        JSONArray unloadingStarts = null;
+        JSONArray unloadingEnds = null;
+        
+        try {
+            // Try to get from bookingDetails first
+            if (bookingDetails != null) {
+                // Parse the unloading arrays from the main response
+                String unloadingStartsStr = bookingDetails.getUnloadingWaitStartTimes();
+                String unloadingEndsStr = bookingDetails.getUnloadingWaitEndTimes();
+                
+                if (unloadingStartsStr != null && !unloadingStartsStr.isEmpty()) {
+                    unloadingStarts = new JSONArray(unloadingStartsStr);
+                }
+                if (unloadingEndsStr != null && !unloadingEndsStr.isEmpty()) {
+                    unloadingEnds = new JSONArray(unloadingEndsStr);
+                }
+            }
+            
+            // Fallback: If no unloading data from bookingDetails, try to get from waitingInfo
+            if (unloadingStarts == null && waitingInfo != null) {
+                unloadingStarts = waitingInfo.optJSONArray("unloading_wait_start_times");
+                unloadingEnds = waitingInfo.optJSONArray("unloading_wait_end_times");
+                System.out.println("Fallback unloadingStarts from waitingInfo: " + unloadingStarts);
+                System.out.println("Fallback unloadingEnds from waitingInfo: " + unloadingEnds);
+            }
+            
+            System.out.println("Final unloadingStarts: " + unloadingStarts);
+            System.out.println("Final unloadingEnds: " + unloadingEnds);
+        } catch (Exception e) {
+            System.out.println("Error parsing unloading arrays: " + e.getMessage());
+        }
+
+        // Find the current drop's unloading timer
+        int currentDropUnloadingIndex = -1;
+        if (unloadingStarts != null && unloadingStarts.length() > 0) {
+            int startsCount = unloadingStarts.length();
+            int endsCount = unloadingEnds != null ? unloadingEnds.length() : 0;
+
+            // If we have more starts than ends, the last start is currently running
+            if (startsCount > endsCount) {
+                currentDropUnloadingIndex = endsCount; // This is the current drop being unloaded
+            }
+        }
+
+        if (currentDropUnloadingIndex >= 0) {
+            double allowedUnloading = 0;
+            // Try to get allowed_unloading from unloadingWaits if available
+            if (unloadingWaits != null && currentDropUnloadingIndex < unloadingWaits.length()) {
+                JSONObject currentDropInfo = unloadingWaits.optJSONObject(currentDropUnloadingIndex);
+                if (currentDropInfo != null) {
+                    allowedUnloading = currentDropInfo.optDouble("allowed_wait", 0);
+                }
+            }
+            // Fallback: if unloadingWaits is empty, get allowed_unloading from waitingInfo
+            if (allowedUnloading == 0) {
+                allowedUnloading = waitingInfo.optDouble("allowed_unloading", 0);
+            }
+            // If still no allowed time, use minimum waiting time as fallback
+            if (allowedUnloading == 0) {
+                allowedUnloading = minimumWaitingTime;
+            }
+            
+            double unloadingStartSec = unloadingStarts.optDouble(currentDropUnloadingIndex, 0);
+            long nowSec = System.currentTimeMillis() / 1000;
+            long elapsed = nowSec - (long)unloadingStartSec; // seconds
+            if (elapsed < 0) elapsed = 0;
+
+            if (allowedUnloading > 0) {
+                long allowedSeconds = (long) (allowedUnloading * 60);
+                if (elapsed < allowedSeconds) {
+                    long left = allowedSeconds - elapsed;
+                    startUnloadingCountdown(left * 1000);
+                } else {
+                    long overage = elapsed - allowedSeconds;
+                    startUnloadingOverageTimer(overage * 1000);
+                }
+            } else {
+                // If allowedUnloading is not available, just show a running timer
+                startUnloadingCountdown(elapsed * 1000);
+            }
+        } else {
+            // Fallback: If no unloading timer data but status indicates we should be unloading
+            if (bookingDetails != null && bookingDetails.getBookingStatus() != null && 
+                bookingDetails.getBookingStatus().startsWith("Reached Drop Location") && 
+                !"Make Payment".equals(bookingDetails.getBookingStatus())) {
+                // Start a basic unloading timer with minimum waiting time
+                System.out.println("Starting fallback unloading timer with minimum waiting time: " + minimumWaitingTime);
+                long allowedSeconds = (long) (minimumWaitingTime * 60);
+                startUnloadingCountdown(allowedSeconds * 1000);
+                
+                // Also show a message to indicate this is a fallback timer
+                binding.unloadingCountdown.setText("Unloading Timer: " + formatTime(allowedSeconds * 1000) + " (Fallback)");
+            } else {
+                stopUnloadingTimer();
+                binding.unloadingCountdown.setText("Unloading Timer: Not running");
+            }
+        }
+
+        // --- Existing info ---
+        String loadingText = String.format(
+                Locale.getDefault(),
+                "Loading Wait: %.1f / %.1f min (Penalty: ₹%.0f)",
+                loadingWait, allowedLoading, loadingPenalty
+        );
+        binding.loadingWaitInfo.setText(loadingText);
+
+        StringBuilder unloadingText = new StringBuilder();
+        if (unloadingWaits != null && unloadingWaits.length() > 0) {
+            for (int i = 0; i < unloadingWaits.length(); i++) {
+                JSONObject dropInfo = unloadingWaits.optJSONObject(i);
+                if (dropInfo != null) {
+                    double wait = dropInfo.optDouble("wait_time", 0);
+                    double allowed = dropInfo.optDouble("allowed_wait", 0);
+                    double penalty = dropInfo.optDouble("penalty", 0);
+                    unloadingText.append(String.format(
+                            Locale.getDefault(),
+                            "Drop %d: %.1f / %.1f min (Penalty: ₹%.0f)\n",
+                            dropInfo.optInt("drop_index", i) + 1, wait, allowed, penalty
+                    ));
+                }
+            }
+        } else {
+            unloadingText.append("No unloading wait recorded.");
+        }
+        binding.unloadingWaitInfo.setText(unloadingText.toString().trim());
+
+        binding.penaltyInfo.setText(String.format(
+                Locale.getDefault(),
+                "Total Penalty: ₹%.0f", totalPenalty
+        ));
+    }
+
+    private void startLoadingTimer() {
+        stopLoadingTimer();
+        loadingTimerRunnable = new Runnable() {
+            @Override
+            public void run() {
+                long millisLeft = loadingEndTime - System.currentTimeMillis();
+                if (millisLeft > 0) {
+                    binding.loadingCountdown.setText("Loading Timer: " + formatMillis(millisLeft));
+                    loadingTimerHandler.postDelayed(this, 1000);
+                } else {
+                    binding.loadingCountdown.setText("Loading Timer: 00:00");
+                    stopLoadingTimer();
+                }
+            }
+        };
+        loadingTimerHandler.post(loadingTimerRunnable);
+    }
+
+    private void startLoadingCountdown(long millisLeft) {
+        if (loadingCountDownTimer != null) loadingCountDownTimer.cancel();
+        loadingCountDownTimer = new CountDownTimer(millisLeft, 1000) {
+            public void onTick(long millisUntilFinished) {
+                binding.loadingCountdown.setText("Loading Timer: " + formatTime(millisUntilFinished));
+            }
+            public void onFinish() {
+                binding.loadingCountdown.setText("Loading Timer: Overage");
+            }
+        }.start();
+    }
+
+    private void startLoadingOverageTimer(long overageMillis) {
+        if (loadingCountDownTimer != null) loadingCountDownTimer.cancel();
+        loadingCountDownTimer = new CountDownTimer(Long.MAX_VALUE, 1000) {
+            long currentOverage = overageMillis;
+
+            public void onTick(long millisUntilFinished) {
+                currentOverage += 1000; // Increase by 1 second
+                binding.loadingCountdown.setText("Loading Timer: +" + formatTime(currentOverage));
+            }
+            public void onFinish() {
+                // This should never be called as we use Long.MAX_VALUE
+            }
+        }.start();
+    }
+
+    private void startUnloadingCountdown(long millisLeft) {
+        if (unloadingCountDownTimer != null) unloadingCountDownTimer.cancel();
+        unloadingCountDownTimer = new CountDownTimer(millisLeft, 1000) {
+            public void onTick(long millisUntilFinished) {
+                binding.unloadingCountdown.setText("Unloading Timer: " + formatTime(millisUntilFinished));
+            }
+            public void onFinish() {
+                binding.unloadingCountdown.setText("Unloading Timer: Overage");
+            }
+        }.start();
+    }
+
+    private void startUnloadingOverageTimer(long overageMillis) {
+        if (unloadingCountDownTimer != null) unloadingCountDownTimer.cancel();
+        unloadingCountDownTimer = new CountDownTimer(Long.MAX_VALUE, 1000) {
+            long currentOverage = overageMillis;
+
+            public void onTick(long millisUntilFinished) {
+                currentOverage += 1000; // Increase by 1 second
+                binding.unloadingCountdown.setText("Unloading Timer: +" + formatTime(currentOverage));
+            }
+            public void onFinish() {
+                // This should never be called as we use Long.MAX_VALUE
+            }
+        }.start();
+    }
+
+    private String formatTime(long millis) {
+        long seconds = millis / 1000;
+        long minutes = seconds / 60;
+        long secs = seconds % 60;
+        return String.format(Locale.getDefault(), "%02d:%02d", minutes, secs);
+    }
+
+    private void stopLoadingTimer() {
+        if (loadingTimerRunnable != null) {
+            loadingTimerHandler.removeCallbacks(loadingTimerRunnable);
+            loadingTimerRunnable = null;
+        }
+    }
+
+    private void stopUnloadingTimer() {
+        if (unloadingTimerRunnable != null) {
+            unloadingTimerHandler.removeCallbacks(unloadingTimerRunnable);
+            unloadingTimerRunnable = null;
+        }
+    }
+
+    private String formatMillis(long millis) {
+        long seconds = millis / 1000;
+        long minutes = seconds / 60;
+        long secs = seconds % 60;
+        return String.format(Locale.getDefault(), "%02d:%02d", minutes, secs);
     }
 
     private void handleError(VolleyError error) {
@@ -700,7 +1300,9 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
         if (!cabService) {
 
             details.setPenaltyChargeAmount(result.optDouble("penalty_charge", 0.0));
-            details.setPenaltyAmount(result.optDouble("penalty_amount", 0.0));
+            double penaltyAmount = result.optDouble("penalty_amount", 0.0);
+            System.out.println("penaltyAmount::"+penaltyAmount);
+            details.setPenaltyAmount(penaltyAmount);
 
         }
 
@@ -737,59 +1339,90 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
                 String dropLocationsStr = result.optString("drop_locations");
                 String dropContactsStr = result.optString("drop_contacts");
 
-                JSONArray dropsArray = new JSONArray(dropLocationsStr);
-                JSONArray contactsArray = new JSONArray(dropContactsStr);
+                List<DropLocation> drops = new ArrayList<>();
+                if (dropLocationsStr != null && !dropLocationsStr.isEmpty() && !dropLocationsStr.equals("[]")) {
+                    JSONArray dropsArray = new JSONArray(dropLocationsStr);
+                    JSONArray contactsArray = (dropContactsStr != null && !dropContactsStr.isEmpty() && !dropContactsStr.equals("[]")) ? new JSONArray(dropContactsStr) : new JSONArray();
 
-                System.out.println("Live Track dropsArray::" + dropsArray);
-                System.out.println("Live Track contactsArray::" + contactsArray);
-
-                if (dropsArray != null && contactsArray != null) {
-                    List<DropLocation> drops = new ArrayList<>();
                     for (int i = 0; i < dropsArray.length(); i++) {
                         JSONObject dropJson = dropsArray.getJSONObject(i);
-                        JSONObject contactJson = contactsArray.getJSONObject(i);
+                        double lat = dropJson.optDouble("lat", 0);
+                        double lng = dropJson.optDouble("lng", 0);
+                        String address = dropJson.optString("address", "");
+                        if (lat == 0 || lng == 0 || address.isEmpty()) continue; // skip invalid
 
                         DropLocation drop = new DropLocation();
-                        drop.setAddress(dropJson.getString("address"));
-                        drop.setLatitude(dropJson.getDouble("lat"));
-                        drop.setLongitude(dropJson.getDouble("lng"));
+                        drop.setAddress(address);
+                        drop.setLatitude(lat);
+                        drop.setLongitude(lng);
 
                         // Set sender details from current contact
-                        drop.setSenderName(contactJson.getString("name"));
-                        drop.setSenderNumber(contactJson.getString("mobile"));
+                        if (contactsArray.length() > i) {
+                            JSONObject contactJson = contactsArray.optJSONObject(i);
+                            if (contactJson != null) {
+                                drop.setSenderName(contactJson.optString("name", ""));
+                                drop.setSenderNumber(contactJson.optString("mobile", ""));
+                            }
+                        }
 
                         // For the last drop location, use the receiver details from the main booking
                         if (i == dropsArray.length() - 1) {
                             drop.setReceiverName(result.optString("receiver_name"));
                             drop.setReceiverNumber(result.optString("receiver_number"));
-                        } else {
+                        } else if (contactsArray.length() > i + 1) {
                             // For intermediate drops, use the next contact as receiver
-                            JSONObject nextContact = contactsArray.getJSONObject(i + 1);
-                            drop.setReceiverName(nextContact.getString("name"));
-                            drop.setReceiverNumber(nextContact.getString("mobile"));
+                            JSONObject nextContact = contactsArray.optJSONObject(i + 1);
+                            if (nextContact != null) {
+                                drop.setReceiverName(nextContact.optString("name", ""));
+                                drop.setReceiverNumber(nextContact.optString("mobile", ""));
+                            }
                         }
 
                         // Determine if this drop is completed based on booking status
                         String bookingStatus = result.optString("booking_status", "");
                         boolean isCompleted = false;
-
                         if (bookingStatus.equals("End Trip")) {
-                            // If trip is ended, all drops are completed
                             isCompleted = true;
                         } else if (bookingStatus.equals("Start Trip")) {
-                            // If trip is started, mark drops as completed based on current drop index
                             int currentDropIndex = result.optInt("current_drop_index", 0);
                             isCompleted = i < currentDropIndex;
                         }
-
                         drop.setCompleted(isCompleted);
                         drops.add(drop);
                     }
-                    details.setDropLocations(drops);
                 }
+                details.setDropLocations(drops); // always set, even if empty
             } catch (JSONException e) {
                 e.printStackTrace();
                 System.out.println("Error parsing drop locations in live track: " + e.getMessage());
+                details.setDropLocations(new ArrayList<>()); // fallback to empty list
+            }
+        } else {
+            details.setDropLocations(new ArrayList<>()); // fallback for non-multi-drop
+        }
+
+        // Parse waiting time info for goods service
+        if (!cabService) {
+            try {
+                JSONObject waitingTimeInfo = result.optJSONObject("waiting_time_info");
+                if (waitingTimeInfo != null) {
+                    details.setWaitingTimeInfo(waitingTimeInfo);
+                }
+
+                // Parse loading wait times
+                long loadingWaitStartTime = result.optLong("loading_wait_start_time", 0);
+                long loadingWaitEndTime = result.optLong("loading_wait_end_time", 0);
+                details.setLoadingWaitStartTime(loadingWaitStartTime);
+                details.setLoadingWaitEndTime(loadingWaitEndTime);
+                
+                // Parse unloading wait times
+                String unloadingWaitStartTimes = result.optString("unloading_wait_start_times", "");
+                String unloadingWaitEndTimes = result.optString("unloading_wait_end_times", "");
+                details.setUnloadingWaitStartTimes(unloadingWaitStartTimes);
+                details.setUnloadingWaitEndTimes(unloadingWaitEndTimes);
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("Error parsing waiting time info: " + e.getMessage());
             }
         }
         return details;
@@ -798,27 +1431,57 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
     private void setupDriverMarker() {
         if (bookingDetails != null) {
             System.out.println("vehicleMapImage::"+vehicleMapImage);
-            if (vehicleMapImage != null && !vehicleMapImage.equals("NA")) {
+            if (vehicleMapImage != null && !vehicleMapImage.equals("NA") && !vehicleMapImage.isEmpty()) {
                 // Load image from URL and convert to marker icon
                 Glide.with(this)
                         .asBitmap()
                         .load(vehicleMapImage)
+                        .error(R.drawable.cab) // Fallback to default icon on error
                         .into(new CustomTarget<Bitmap>() {
                             @Override
                             public void onResourceReady(@NonNull Bitmap resource,
                                                         @Nullable Transition<? super Bitmap> transition) {
                                 Bitmap resized = resizeBitmap(resource, 100, 100);
                                 driverIcon = BitmapDescriptorFactory.fromBitmap(resized);
+
+                                // Update existing marker if it exists
+                                if (driverMarker != null) {
+                                    driverMarker.setIcon(driverIcon);
+                                }
+
+                                // Ensure driver marker is initialized with the new icon
+                                ensureDriverMarkerInitialized();
+                            }
+
+                            @Override
+                            public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                                System.out.println("Failed to load vehicle image: " + vehicleMapImage);
+                                // Use default icon if image loading fails
+                                Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab);
+                                Bitmap smallMarker = resizeBitmap(original, 100, 100);
+                                driverIcon = BitmapDescriptorFactory.fromBitmap(smallMarker);
+
+                                // Update existing marker if it exists
+                                if (driverMarker != null) {
+                                    driverMarker.setIcon(driverIcon);
+                                }
+
+                                // Ensure driver marker is initialized with the default icon
+                                ensureDriverMarkerInitialized();
                             }
 
                             @Override
                             public void onLoadCleared(@Nullable Drawable placeholder) {}
                         });
             } else {
+                System.out.println("Using default vehicle icon - no vehicle image provided");
                 // Use default icon
                 Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab);
                 Bitmap smallMarker = resizeBitmap(original, 100, 100);
                 driverIcon = BitmapDescriptorFactory.fromBitmap(smallMarker);
+
+                // Ensure driver marker is initialized with the default icon
+                ensureDriverMarkerInitialized();
             }
         }
     }
@@ -859,42 +1522,50 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
     private void updateUI() {
         if (bookingDetails == null) return;
 
-        //Show the markers provided my the api
+        //Show the markers provided by the api
         setupDriverMarker();
-String currentApiStatus = bookingDetails.getBookingStatus();
+        
+        // Fetch driver ratings
+        fetchDriverRatings();
+
+        // Ensure driver marker is properly initialized
+        ensureDriverMarkerInitialized();
+
+        String currentApiStatus = bookingDetails.getBookingStatus();
         if (bookingDetails != null) {
             //It will start can culating the timings
-            if (currentApiStatus.equalsIgnoreCase("Driver Arrived")) {
-                // Initialize timer
-                timerManager = new UnloadingTimerManager(this, Integer.parseInt(bookingId),
-                        binding.txtUnloadingTime, binding.txtPenaltyInfo,
-                        new UnloadingTimerManager.UnloadingTimerListener() {
-                            @Override
-                            public void onPenaltyUpdated(double totalPenalty, long penaltyMinutes) {
-                                // Store penalty for API update
-                                penaltyCharges = totalPenalty;
-                            }
 
-                            @Override
-                            public void onTimerFinished() {
-                                showToast("Free unloading time finished!");
-                            }
-                        });
-
-                binding.timerContainer.setVisibility(View.VISIBLE);
-                timerManager.startTimer(minimumWaitingTime, penaltyCharges);
-            } else if (currentApiStatus.equalsIgnoreCase("Start Trip")) {
-                if (timerManager != null) {
-                    double finalPenalty = timerManager.getCurrentPenalty();
-                    if (finalPenalty > 0) {
-                        penaltyCharges = finalPenalty;
-//                        // Update penalty amount in backend this is done by agent only
-
-                    }
-                    timerManager.stopTimer();
-                }
-                binding.timerContainer.setVisibility(View.GONE);
-            }
+//            if (currentApiStatus.equalsIgnoreCase("Driver Arrived")) {
+//                // Initialize timer
+//                timerManager = new UnloadingTimerManager(this, Integer.parseInt(bookingId),
+//                        binding.txtUnloadingTime, binding.txtPenaltyInfo,
+//                        new UnloadingTimerManager.UnloadingTimerListener() {
+//                            @Override
+//                            public void onPenaltyUpdated(double totalPenalty, long penaltyMinutes) {
+//                                // Store penalty for API update
+//                                penaltyCharges = totalPenalty;
+//                            }
+//
+//                            @Override
+//                            public void onTimerFinished() {
+//                                showToast("Free unloading time finished!");
+//                            }
+//                        });
+//
+//                binding.timerContainer.setVisibility(View.VISIBLE);
+//                timerManager.startTimer(minimumWaitingTime, penaltyCharges);
+//            } else if (currentApiStatus.equalsIgnoreCase("Start Trip")) {
+//                if (timerManager != null) {
+//                    double finalPenalty = timerManager.getCurrentPenalty();
+//                    if (finalPenalty > 0) {
+//                        penaltyCharges = finalPenalty;
+////                        // Update penalty amount in backend this is done by agent only
+//
+//                    }
+//                    timerManager.stopTimer();
+//                }
+//                binding.timerContainer.setVisibility(View.GONE);
+//            }
         }
 
         // Update drop addresses section
@@ -908,9 +1579,11 @@ String currentApiStatus = bookingDetails.getBookingStatus();
         binding.totaldistance.setText("Distance: "+bookingDetails.getDistance()+"km");
 
         String bookingStatus1 = bookingDetails.getBookingStatus();
-        boolean isCancelled = bookingStatus1.equalsIgnoreCase("Cancelled");
-
-        if (!isMultipleDrops && !isCancelled) {
+//        boolean isCancelled = bookingStatus1.equalsIgnoreCase("Cancelled");
+//        List<String> hiddenStatuses = Arrays.asList("Driver Accepted", "Driver Arrived", "Cancelled", "Otp Verified","");
+        List<String> hiddenStatuses = Arrays.asList("Cancelled");
+//        if (!hiddenStatuses.contains(bookingStatus1)) {
+        if (!isMultipleDrops && !hiddenStatuses.contains(bookingStatus1) && !bookingStatus1.startsWith("Reached Drop Location")) {
             binding.btnEditDropLocation.setVisibility(View.VISIBLE);
         } else {
             binding.btnEditDropLocation.setVisibility(View.GONE);
@@ -931,7 +1604,7 @@ String currentApiStatus = bookingDetails.getBookingStatus();
         binding.txtttotle.setText("₹" + bookingDetails.getTotalPrice());
 
         String bookingStatus = bookingDetails.getBookingStatus();
-        if(bookingStatus.equalsIgnoreCase("Driver Accepted")){
+        if(bookingStatus.equalsIgnoreCase("Driver Accepted") || bookingStatus.equalsIgnoreCase("Driver Arrived")){
             binding.btnCancel.setVisibility(View.VISIBLE);
         }else{
             binding.btnCancel.setVisibility(View.GONE);
@@ -950,17 +1623,8 @@ String currentApiStatus = bookingDetails.getBookingStatus();
             showPaymentDialog(bookingDetails.getTotalPrice());
         }
 
-        // Update rider details
-        if (!TextUtils.isEmpty(bookingDetails.getDriverImage())) {
-            if (OngoingGoodsDetailActivity.this != null)
-                Glide.with(this)
-                        .load(bookingDetails.getDriverImage())
-
-                        .placeholder(R.drawable.placeholder)
-                        .error(R.drawable.placeholder)
-                        .override(100, 100)
-                        .into(binding.imgIcon);
-        }
+        // Update rider details - Driver image will be loaded with rating overlay in fetchDriverRatings()
+        // The image loading is now handled in updateDriverProfileWithRating()
 
         binding.txtOtp.setText(bookingDetails.getOtp());
         binding.txtRidername.setText(bookingDetails.getDriverName());
@@ -1046,13 +1710,23 @@ String currentApiStatus = bookingDetails.getBookingStatus();
         }
 
         // Show/hide cancel button based on status
-        boolean showCancelButton = bookingDetails.getBookingStatus().equals("Driver Accepted") ||
-                bookingDetails.getBookingStatus().equals("Driver Arrived");
-        binding.lvlRider.setVisibility(showCancelButton ? View.VISIBLE : View.GONE);
+        boolean showCancelButton =
+                bookingDetails.getBookingStatus().equals("Cancelled");
+        binding.lvlRider.setVisibility(!showCancelButton ? View.VISIBLE : View.GONE);
 
         // Initialize map if ready
         if (mMap != null && bookingDetails.getBookingStatus().equalsIgnoreCase("Cancelled") == false) {
             drawInitialRoute();
+        }
+
+        // Clear route when booking is cancelled
+        if (bookingDetails.getBookingStatus().equalsIgnoreCase("Cancelled")) {
+            currentRoutePoints.clear();
+            isFollowingRoute = false;
+            if (currentPolyline != null) {
+                currentPolyline.remove();
+                currentPolyline = null;
+            }
         }
     }
 
@@ -1290,16 +1964,13 @@ String currentApiStatus = bookingDetails.getBookingStatus();
                         .icon(driverIcon);
                 driverMarker = mMap.addMarker(markerOptions);
             } else {
-                driverMarker.setPosition(newLocation);
-
-                if (previousLocation != null) {
-                    float distance = getDistance(previousLocation, newLocation);
-
-                    if (distance > 0.5) { // Only update rotation if moved more than 2 meters
-                        float bearing = getBearing(previousLocation, newLocation);
-                        previousRotation = bearing; // Save last good rotation
-                    }
-                    driverMarker.setRotation(previousRotation); // Always set the rotation
+                // If we have route points, follow the route instead of direct movement
+                if (!currentRoutePoints.isEmpty() && isFollowingRoute) {
+                    followRouteToLocation(newLocation);
+                } else {
+                    // Direct movement (fallback)
+                    driverMarker.setPosition(newLocation);
+                    updateMarkerRotation(newLocation);
                 }
             }
 
@@ -1307,6 +1978,91 @@ String currentApiStatus = bookingDetails.getBookingStatus();
 
             updateRouteToDestination(newLocation);
         });
+    }
+
+    private void followRouteToLocation(LatLng targetLocation) {
+        if (currentRoutePoints.isEmpty()) return;
+
+        // Find the closest point on the route to the target location
+        LatLng closestRoutePoint = findClosestPointOnRoute(targetLocation);
+
+        // Only move if the closest point is significantly different from current position
+        if (driverMarker != null) {
+            LatLng currentPosition = driverMarker.getPosition();
+            double distanceToClosest = getDistanceBetweenPoints(currentPosition, closestRoutePoint);
+
+            // Only update if the closest point is within reasonable distance (not too far from actual location)
+            if (distanceToClosest < 100) { // 100 meters threshold
+                driverMarker.setPosition(closestRoutePoint);
+                updateMarkerRotation(closestRoutePoint);
+            } else {
+                // If too far from route, use direct movement as fallback
+                driverMarker.setPosition(targetLocation);
+                updateMarkerRotation(targetLocation);
+            }
+        }
+    }
+
+    private LatLng findClosestPointOnRoute(LatLng targetLocation) {
+        if (currentRoutePoints.isEmpty()) return targetLocation;
+
+        LatLng closestPoint = currentRoutePoints.get(0);
+        double minDistance = Double.MAX_VALUE;
+
+        for (LatLng routePoint : currentRoutePoints) {
+            double distance = getDistanceBetweenPoints(targetLocation, routePoint);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestPoint = routePoint;
+            }
+        }
+
+        return closestPoint;
+    }
+
+    private double getDistanceBetweenPoints(LatLng point1, LatLng point2) {
+        float[] result = new float[1];
+        Location.distanceBetween(
+                point1.latitude, point1.longitude,
+                point2.latitude, point2.longitude,
+                result
+        );
+        return result[0];
+    }
+
+    private void updateMarkerRotation(LatLng newLocation) {
+        if (previousLocation != null) {
+            float distance = getDistance(previousLocation, newLocation);
+
+            if (distance > 0.5) { // Only update rotation if moved more than 0.5 meters
+                float bearing = getBearing(previousLocation, newLocation);
+                previousRotation = bearing; // Save last good rotation
+            }
+            driverMarker.setRotation(previousRotation); // Always set the rotation
+        }
+    }
+
+    private void ensureDriverMarkerInitialized() {
+        // If driver marker doesn't exist but we have booking details, create it
+        if (driverMarker == null && bookingDetails != null && mMap != null) {
+            // Use pickup location as initial position
+            LatLng initialPosition = bookingDetails.getPickupLatLng();
+            if (initialPosition != null) {
+                MarkerOptions markerOptions = new MarkerOptions()
+                        .position(initialPosition)
+                        .flat(true)
+                        .anchor(0.5f, 0.5f)
+                        .icon(driverIcon);
+                driverMarker = mMap.addMarker(markerOptions);
+
+                // Set initial rotation
+                if (previousLocation != null) {
+                    float bearing = getBearing(previousLocation, initialPosition);
+                    driverMarker.setRotation(bearing);
+                    previousRotation = bearing;
+                }
+            }
+        }
     }
 
     private float getDistance(LatLng from, LatLng to) {
@@ -1421,9 +2177,13 @@ String currentApiStatus = bookingDetails.getBookingStatus();
             destination = bookingDetails.getPickupLatLng();
         }
 
-        // Draw route between driver and destination
-        String url = getDirectionsUrl(driverLocation, destination);
-        new FetchRouteTask().execute(url);
+        // Only update route if destination is valid and different from current route
+        if (destination != null && (currentRoutePoints.isEmpty() ||
+            getDistanceBetweenPoints(destination, currentRoutePoints.get(currentRoutePoints.size() - 1)) > 50)) {
+            // Draw route between driver and destination
+            String url = getDirectionsUrl(driverLocation, destination);
+            new FetchRouteTask().execute(url);
+        }
     }
 
     private class FetchRouteTask extends AsyncTask<String, Void, List<LatLng>> {
@@ -1504,12 +2264,17 @@ String currentApiStatus = bookingDetails.getBookingStatus();
     }
 
     private void drawRoute(List<LatLng> points) {
-        if (mMap == null) return;
+        if (mMap == null || points == null || points.isEmpty()) return;
 
         // Remove existing polyline if any
         if (currentPolyline != null) {
             currentPolyline.remove();
         }
+
+        // Store route points for driver marker to follow
+        currentRoutePoints.clear();
+        currentRoutePoints.addAll(points);
+        isFollowingRoute = true;
 
         // Draw new polyline
         PolylineOptions lineOptions = new PolylineOptions()
@@ -1569,6 +2334,8 @@ String currentApiStatus = bookingDetails.getBookingStatus();
         mMap.getUiSettings().setMyLocationButtonEnabled(false);
 
         if (bookingDetails != null) {
+            // Ensure driver marker is set up before drawing route
+            setupDriverMarker();
             drawInitialRoute();
         }
     }
@@ -1774,12 +2541,30 @@ String currentApiStatus = bookingDetails.getBookingStatus();
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        stopLoadingTimer();
+        stopUnloadingTimer();
+
+        // Clean up countdown timers (including overage timers)
+        if (loadingCountDownTimer != null) {
+            loadingCountDownTimer.cancel();
+            loadingCountDownTimer = null;
+        }
+        if (unloadingCountDownTimer != null) {
+            unloadingCountDownTimer.cancel();
+            unloadingCountDownTimer = null;
+        }
+
         if (locationUpdateTimer != null) {
             locationUpdateTimer.cancel();
         }
         if (timerManager != null) {
             timerManager.stopTimer();
         }
+
+        // Clear route data
+        currentRoutePoints.clear();
+        isFollowingRoute = false;
     }
 
     private void showLoading(Boolean show) {

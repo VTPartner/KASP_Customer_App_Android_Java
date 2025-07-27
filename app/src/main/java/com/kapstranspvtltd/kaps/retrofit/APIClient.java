@@ -14,7 +14,7 @@ public class APIClient {
     static Retrofit retrofit = null;
     //    public static String baseUrl = "http://77.37.47.156:8000/api/vt_partner/";
 //    public static String baseUrl = "https://www.vtpartner.org/api/vt_partner/";
-    private static final int DEV_MODE = 0; // If Dev Mode is 1 then development server is on and if 0 then production server is on
+    private static final int DEV_MODE = 1; // If Dev Mode is 1 then development server is on and if 0 then production server is on
 
     public static final String baseUrl = DEV_MODE == 1
             ? "http://44.203.96.86:8000/api/vt_partner/"
