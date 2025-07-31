@@ -86,6 +86,7 @@ import com.kapstranspvtltd.kaps.common_activities.models.RecentSearch;
 import com.kapstranspvtltd.kaps.network.VolleySingleton;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.CustPrograssbar;
+import com.kapstranspvtltd.kaps.utility.Drop;
 import com.kapstranspvtltd.kaps.utility.Pickup;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 import com.kapstranspvtltd.kaps.utility.Utility;
@@ -848,7 +849,19 @@ if(cabService){
             intent.putExtra("pickup", pickup);
             intent.putExtra("category_id", categoryId);
             intent.putExtra("category_name", categoryName);
-            intent.putExtra("cab",cabService);
+            intent.putExtra("cab", cabService);
+            
+            // Check if we need to preserve drops
+            boolean preserveDrops = getIntent().getBooleanExtra("preserve_drops", false);
+            if (preserveDrops) {
+                ArrayList<Drop> preservedDrops = getIntent().getParcelableArrayListExtra("current_drops");
+                if (preservedDrops != null) {
+                    // Restore the preserved drops
+                    dropList.clear();
+                    dropList.addAll(preservedDrops);
+                }
+            }
+            
             startActivity(intent);
         } else {
             showError("Location information is missing");

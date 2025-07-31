@@ -1069,7 +1069,7 @@ public class HomeSelectFragment extends Fragment {
         }
 
         String fcmToken = preferenceManager.getStringValue("fcm_token");
-        
+//        currentPincode = "412105";
         try {
             JSONObject requestBody = new JSONObject();
             requestBody.put("pincode", currentPincode);

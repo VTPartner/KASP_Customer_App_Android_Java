@@ -31,79 +31,114 @@
             android:textSize="16dp" />
     </LinearLayout>
 
-    <!-- Top Card with Pickup Location -->
+    <!-- Connected Location Layout -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:orientation="horizontal"
         android:background="@color/white"
-        android:elevation="4dp"
+        android:elevation="2dp"
         android:layout_margin="2dp"
-        android:padding="8dp">
+        >
 
+
+
+        <!-- Location details -->
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_margin="5dp"
-            android:gravity="center_vertical">
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Pickup Location -->
+           <LinearLayout
+               android:layout_width="match_parent"
+               android:layout_height="wrap_content"
+               android:orientation="horizontal">
+
+               <!-- Vertical dotted line with pin icons -->
+               <LinearLayout
+                   android:layout_width="wrap_content"
+                   android:layout_height="wrap_content"
+                   android:orientation="vertical"
+                   android:gravity="center_horizontal"
+                   android:layout_marginEnd="12dp">
+
+                   <!-- Green pin for pickup -->
+                   <ImageView
+                       android:layout_width="16dp"
+                       android:layout_height="16dp"
+                       android:src="@drawable/circle_green"
+                       android:backgroundTint="@color/green"
+                       android:layout_marginTop="20dp"/>
+
+                   <!-- Dashed line -->
+                   <View
+                       android:layout_width="12dp"
+                       android:layout_height="20dp"
+                       android:background="@drawable/dashed_line_vertical"
+                       android:backgroundTint="@color/grey"
+                       />
 
 
-            <LinearLayout
-                android:layout_width="0dp"
+
+               </LinearLayout>
+               <LinearLayout
+                   android:layout_width="match_parent"
+                   android:layout_height="wrap_content"
+                   android:orientation="vertical"
+                   android:background="@drawable/bg_location_field"
+                   android:padding="12dp"
+                   android:layout_marginBottom="8dp">
+
+                   <RelativeLayout
+                       android:layout_width="match_parent"
+                       android:layout_height="wrap_content">
+
+                       <TextView
+                           android:id="@+id/txtPickupContact"
+                           android:layout_width="wrap_content"
+                           android:layout_height="wrap_content"
+                           android:text="Sam Rocks • 8296565587"
+                           android:textColor="@color/black"
+                           android:textSize="14sp"
+                           android:textStyle="bold"/>
+
+                       <ImageView
+                           android:id="@+id/editPickupLocation"
+                           android:layout_width="20dp"
+                           android:layout_height="20dp"
+                           android:layout_alignParentEnd="true"
+                           android:layout_marginEnd="5dp"
+                           android:src="@drawable/ic_edit"
+                           android:tint="@color/colorPrimary" />
+                   </RelativeLayout>
+
+                   <TextView
+                       android:id="@+id/txtPickupAddress"
+                       android:layout_width="wrap_content"
+                       android:layout_height="wrap_content"
+                       android:text="Plot no 83, Gat 798 Industrial area ph..."
+                       android:textColor="@color/grey"
+                       android:textSize="12sp"
+                       android:maxLines="2"
+                       android:layout_marginTop="2dp"/>
+
+               </LinearLayout>
+           </LinearLayout>
+
+            <!-- Drop Locations RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerDropLocations"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:background="@color/white"/>
 
-                <TextView
-
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Pickup Location"
-                    android:textStyle="bold"
-                    android:textColor="@color/green"
-                    android:textSize="14sp"/>
-
-                <TextView
-                    android:id="@+id/txtSenderDetails"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="No Sender details found"
-                    android:textColor="@color/black"
-                    android:textSize="12sp"/>
-
-                <TextView
-                    android:id="@+id/pickupLocation"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="No Address Found"
-                    android:textColor="@color/grey"
-                    android:maxLines="1"
-                    android:textSize="12sp"/>
-            </LinearLayout>
-
-            <ImageView
-                android:id="@+id/editPickupLocation"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:tint="@color/colorPrimary"
-                android:src="@drawable/ic_edit"/>
         </LinearLayout>
-
 
     </LinearLayout>
 
 
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerDropLocations"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:layout_marginStart="2dp"
-        android:layout_marginEnd="2dp"
-        android:background="@color/white"/>
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -122,11 +157,9 @@
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
             android:gravity="center"
-
             android:orientation="vertical">
 
             <LinearLayout
-
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="15dp"
@@ -137,7 +170,7 @@
                 android:orientation="vertical">
 
                 <TextView
-android:id="@+id/dropmaplocation"
+                    android:id="@+id/dropmaplocation"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:drawablePadding="5dp"
@@ -186,8 +219,7 @@ android:id="@+id/dropmaplocation"
                 android:layout_height="46dp"
                 android:layout_centerHorizontal="true"
                 android:padding="5dp"
-                android:src="@drawable/ic_home_current"
-                />
+                android:src="@drawable/ic_home_current" />
 
         </LinearLayout>
 
@@ -196,7 +228,6 @@ android:id="@+id/dropmaplocation"
             android:layout_width="match_parent"
             android:layout_height="42dp"
             android:layout_alignParentBottom="true"
-
             android:layout_marginStart="30dp"
             android:layout_marginLeft="20dp"
             android:layout_marginEnd="30dp"
@@ -245,6 +276,5 @@ android:id="@+id/dropmaplocation"
             android:layout_marginBottom="84dp"
             android:src="@drawable/ic_current_map" />
     </RelativeLayout>
-
 
 </LinearLayout>

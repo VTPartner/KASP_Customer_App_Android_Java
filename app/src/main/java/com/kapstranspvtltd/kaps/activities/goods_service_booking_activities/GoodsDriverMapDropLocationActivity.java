@@ -133,6 +133,9 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
 
     private boolean isInitialLoad = true;
 
+    // Track current drop being edited
+    private int currentEditingDropIndex = 0;
+
     ActivityResultLauncher<Intent> launcher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -213,7 +216,13 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
             dropList = new ArrayList<>();
         }
         if (dropList.isEmpty()) {
-            dropList.add(new Drop());
+            Drop initialDrop = new Drop();
+            dropList.add(initialDrop);
+        }
+
+        // Ensure dropIndex is valid
+        if (dropIndex >= dropList.size()) {
+            dropIndex = dropList.size() - 1;
         }
 
         String dropsValue = preferenceManager.getStringValue("multiple_drops", "3");
@@ -226,6 +235,8 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
 
         setupDropRecycler();
 
+        // Initialize current editing drop index
+        currentEditingDropIndex = dropIndex;
 
         checkPincodeAndShowDialog(pickup.getLat(),pickup.getLog());
         getSenderDetails();
@@ -237,42 +248,7 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
 
     }
 
-    private void setupDropRecycler() {
-        dropLocationAdapter = new DropLocationAdapter(dropList, MAX_DROP_LOCATIONS, new DropLocationAdapter.DropActionListener() {
-            @Override
-            public void onEdit(int position) {
-                // Open edit dialog/activity for this drop
-                dropIndex = position;
-                dropLocationAdapter.setEditingIndex(position);
-                int dropCurrentIndex = dropIndex + 1;
-                if(dropIndex>0)
-                    binding.dropmaplocation.setText("Drop Location "+dropCurrentIndex);
-                else
-                    binding.dropmaplocation.setText("Drop Location");
-                Toast.makeText(GoodsDriverMapDropLocationActivity.this, "Editing Drop " + (position + 1), Toast.LENGTH_SHORT).show();
-                editDrop(position);
-            }
-            @Override
-            public void onSearch(int position) {
-                // Open search for this drop
-                dropIndex = position;
-                searchDrop(position);
-            }
 
-            @Override
-            public void onRemove(int position) {
-                removeDrop(position);
-            }
-
-            @Override
-            public void onAddStop() {
-                // Add new drop
-                addNewDrop();
-            }
-        });
-        binding.recyclerDropLocations.setLayoutManager(new LinearLayoutManager(this));
-        binding.recyclerDropLocations.setAdapter(dropLocationAdapter);
-    }
 
     private void removeDrop(int position) {
         // Don't remove first drop (position 0)
@@ -290,6 +266,12 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
             }
             if (dropIndex < 0) dropIndex = 0;
 
+            // Update current editing index
+            currentEditingDropIndex = dropIndex;
+
+            // Update UI
+            updateDropLocationTitle();
+
             // Update camera position to show the last remaining drop location
             updateCameraAfterDropRemoval();
         }
@@ -297,21 +279,14 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
 
     private void editDrop(int position) {
         dropIndex = position;
+        currentEditingDropIndex = position;
         showCustomPlacesSearch();
-        // Show dialog or activity to edit drop at position
-        // After editing, update dropList and notify adapter
-        // Example: open a dialog, on result:
-        // dropList.set(position, updatedDrop);
-        // dropLocationAdapter.notifyItemChanged(position);
     }
 
     private void searchDrop(int position) {
-        // Show place search for this drop
-        // After selecting, update dropList and notify adapter
         dropIndex = position;
+        currentEditingDropIndex = position;
         showCustomPlacesSearch();
-//         dropList.get(position).setAddress(newAddress);
-        // dropLocationAdapter.notifyItemChanged(position);
     }
 
     private void addNewDrop() {
@@ -321,7 +296,14 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
             return;
         }
         dropList.add(new Drop());
-        dropLocationAdapter.notifyDataSetChanged(); // Use this instead of notifyItemInserted
+
+        // Set the new drop as the current editing index
+        dropIndex = dropList.size() - 1;
+        currentEditingDropIndex = dropIndex;
+        dropLocationAdapter.setEditingIndex(dropIndex);
+        updateDropLocationTitle();
+
+        dropLocationAdapter.notifyDataSetChanged();
     }
 
 
@@ -331,13 +313,13 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
 //        String senderName = preferenceManager.getStringValue("sender_name");
 //        String senderNumber = preferenceManager.getStringValue("sender_number");
 
-            if(pickup !=null){
-                this.senderName = pickup.getRname();
-                this.senderNumber = pickup.getRmobile();
-            }else{
-                this.senderName = customerName.split(" ")[0];
+        if(pickup !=null){
+            this.senderName = pickup.getRname();
+            this.senderNumber = pickup.getRmobile();
+        }else{
+            this.senderName = customerName.split(" ")[0];
             this.senderNumber = customerMobile;
-            }
+        }
 //        if (senderName == null || senderName.isEmpty() || senderNumber == null || senderNumber.isEmpty()) {
 //            this.senderName = customerName.split(" ")[0];
 //            this.senderNumber = customerMobile;
@@ -352,23 +334,17 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
     private void initializeViews() {
         pickup = getIntent().getParcelableExtra("pickup");
         cabService = getIntent().getBooleanExtra("cab",false);
-//        custPrograssbar = new CustPrograssbar();
         sessionManager = new SessionManager(this);
-        String address = pickup.getAddress();
-        if(address == null || address.isEmpty()){
+
+        if(pickup == null || pickup.getAddress() == null || pickup.getAddress().isEmpty()){
             Toast.makeText(this,"Please re-confirm your pickup location",Toast.LENGTH_LONG).show();
             return;
-        }else{
-            String senderDetails = senderName+" . "+senderNumber;
-            binding.txtSenderDetails.setText(senderDetails);
-            binding.pickupLocation.setText(address);
         }
-//        user = sessionManager.getUserDetails();
-        fusedLocationProviderClient = getFusedLocationProviderClient(this);
 
-//        if (!Places.isInitialized()) {
-//            Places.initialize(getApplicationContext(), getString(R.string.google_maps_key), Locale.US);
-//        }
+        // Set pickup details in the UI
+        updatePickupLocationDisplay();
+
+        fusedLocationProviderClient = getFusedLocationProviderClient(this);
     }
 
     private void setupClickListeners() {
@@ -388,15 +364,13 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
         };
 
         binding.imgBack.setOnClickListener(singleClickListener);
-//        binding.edSearch.setOnClickListener(singleClickListener);
         binding.btnSend.setOnClickListener(singleClickListener);
         binding.imgCurrunt.setOnClickListener(singleClickListener);
-        binding.editPickupLocation.setOnClickListener(singleClickListener);
-//        binding.editDropLocation.setOnClickListener(singleClickListener);
 
-        // Make search EditText more responsive
-//        binding.edSearch.setFocusable(false);
-//        binding.edSearch.setClickable(true);
+        // Make pickup location clickable
+        binding.txtPickupAddress.setOnClickListener(v -> editPickupLocation());
+
+
     }
 
     private void handleClick(View v) {
@@ -406,9 +380,9 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
         }
         else if (v.getId() == R.id.ed_search) {
 
-                v.setEnabled(false);
-                showCustomPlacesSearch();
-                v.postDelayed(() -> v.setEnabled(true), 100);
+            v.setEnabled(false);
+            showCustomPlacesSearch();
+            v.postDelayed(() -> v.setEnabled(true), 100);
 
 //            launchPlacesAutocomplete();
         }else if (v.getId() == R.id.editDropLocation) {
@@ -423,20 +397,13 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
                 showSuccess("Service not available for this pickup location");
                 return;
             }
+
             showBottomConfirmDialog();
         } else if (v.getId() == R.id.img_currunt) {
             animateCurrentLocationButton();
             getCurrentLocation();
         } else if (v.getId() == R.id.editPickupLocation) {
-
-            Glb.showPickup = true;
-            Intent intent = new Intent(GoodsDriverMapDropLocationActivity.this, GoodsPickupMapLocationActivity.class);
-            intent.putExtra("category_id", categoryId);
-            intent.putExtra("category_name", categoryName);
-            intent.putExtra("cab", categoryId == 2);
-            startActivity(intent);
-            finish();
-
+            editPickupLocation();
         }
 
     }
@@ -534,7 +501,7 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
                                     preferenceManager.saveStringValue("pincode_id", pincodeId);
                                     preferenceManager.saveFloatValue("outstation_distance", (float) outstationDistance);
 
-                                  proceedToNextScreen = true;
+                                    proceedToNextScreen = true;
                                 } else {
                                     showError("No service available in this area");
                                     proceedToNextScreen = false;
@@ -640,8 +607,31 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
         View sheetView = getLayoutInflater().inflate(R.layout.customeconfirmdetails, null);
         dialog.setContentView(sheetView);
         String fulladdress = "";
-        if (addressBundle != null)
+        System.out.println("D_showBottomConfirmDialog:: currentEditingDropIndex::"+currentEditingDropIndex+"  dropList.size()::"+dropList.size());
+        System.out.println("addressBundle::"+addressBundle);
+        boolean condition = currentEditingDropIndex < dropList.size();
+        System.out.println("currentEditingDropIndex < dropList.size()::"+condition);
+
+        // Ensure dropList is initialized and has at least one element
+        if (dropList == null) {
+            dropList = new ArrayList<>();
+        }
+        if (dropList.isEmpty()) {
+            dropList.add(new Drop());
+        }
+
+        // Get address from the current drop being edited
+//        if (currentEditingDropIndex >= 0 && currentEditingDropIndex < dropList.size()) {
+        if (currentEditingDropIndex >= 0 && currentEditingDropIndex < dropList.size()) {
+            Drop currentDrop = dropList.get(currentEditingDropIndex);
+            if (currentDrop.getAddress() != null && !currentDrop.getAddress().isEmpty()) {
+                fulladdress = currentDrop.getAddress();
+            } else if (addressBundle != null) {
+                fulladdress = addressBundle.getString("drop_fulladdress");
+            }
+        } else if (addressBundle != null) {
             fulladdress = addressBundle.getString("drop_fulladdress");
+        }
 
         TextView pickupLabel = sheetView.findViewById(R.id.labelPickup);
         TextView pickupAddress = sheetView.findViewById(R.id.confirm_pickaddress);
@@ -662,14 +652,14 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
         }
 
         pickupAddress.setText(fulladdress);
-        int dropCurrentIndex = dropIndex + 1;
-        if(dropIndex>0)
-            pickupLabel.setText("Drop Location "+dropCurrentIndex);
+        int dropCurrentIndex = currentEditingDropIndex + 1;
+        if(currentEditingDropIndex > 0)
+            pickupLabel.setText("Drop Location " + dropCurrentIndex);
         else
-            pickupLabel.setText("Drop Location ");
+            pickupLabel.setText("Drop Location");
 
-        if (dropIndex < dropList.size()) {
-            Drop drop = dropList.get(dropIndex);
+        if (currentEditingDropIndex < dropList.size()) {
+            Drop drop = dropList.get(currentEditingDropIndex);
             if (drop.getRname() != null) edName.setText(drop.getRname());
             if (drop.getRmobile() != null) edMobile.setText(drop.getRmobile());
         }
@@ -681,11 +671,11 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
                 edName.setText(customer_name);
                 edMobile.setText(customer_mobile_no);
             } else {
-                if (dropIndex < dropList.size()) {
-                    Drop drop = dropList.get(dropIndex);
+                if (currentEditingDropIndex < dropList.size()) {
+                    Drop drop = dropList.get(currentEditingDropIndex);
                     if (drop.getRname() != null) edName.setText(drop.getRname());
                     if (drop.getRmobile() != null) edMobile.setText(drop.getRmobile());
-                }else {
+                } else {
                     edName.setText("");
                     edMobile.setText("");
                 }
@@ -709,20 +699,23 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
                 return;
             }
 
-            // Defensive: ensure dropList has at least dropIndex element
-            while (dropList.size() <= dropIndex) {
+            // Defensive: ensure dropList has at least currentEditingDropIndex element
+            while (dropList.size() <= currentEditingDropIndex) {
                 dropList.add(new Drop());
             }
 
             // Update the correct drop in the list
-            Drop drop = dropList.get(dropIndex);
+            Drop drop = dropList.get(currentEditingDropIndex);
             drop.setLat(latitude);
             drop.setLog(longitude);
             drop.setAddress(addressBundle.getString("drop_fulladdress"));
             drop.setRname(edName.getText().toString().trim());
             drop.setRmobile(edMobile.getText().toString().trim());
-            dropList.set(dropIndex, drop);
-            dropLocationAdapter.notifyItemChanged(dropIndex);
+            dropList.set(currentEditingDropIndex, drop);
+            dropLocationAdapter.notifyItemChanged(currentEditingDropIndex);
+
+            // Update pickup display if needed
+            updatePickupLocationDisplay();
 
             // Validate all drops have non-empty address AND contact details
             for (int i = 0; i < dropList.size(); i++) {
@@ -778,7 +771,11 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
         }
 
         pickupAddress.setText(fulladdress);
-        pickupLabel.setText("Drop Location");
+        int dropCurrentIndex = dropIndex + 1;
+        if(dropIndex > 0)
+            pickupLabel.setText("Drop Location " + dropCurrentIndex);
+        else
+            pickupLabel.setText("Drop Location");
 
         chUser.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
@@ -910,11 +907,7 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
-        int dropCurrentIndex = dropIndex + 1;
-        if(dropIndex>0)
-            binding.dropmaplocation.setText("Drop Location "+dropCurrentIndex);
-        else
-            binding.dropmaplocation.setText("Drop Location");
+        updateDropLocationTitle();
 
         mMap.setOnCameraIdleListener(() -> {
             LatLng latLng = mMap.getCameraPosition().target;
@@ -1109,32 +1102,103 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
         if (dropLocationAdapter != null) {
             dropLocationAdapter.notifyDataSetChanged();
 
-            // Update the "Add New Stop" button visibility
-            String dropsValue = preferenceManager.getStringValue("multiple_drops", "3");
-            int multipleDrops;
-            try {
-                multipleDrops = Integer.parseInt(dropsValue);
-            } catch (NumberFormatException e) {
-                multipleDrops = 3; // fallback value
-            }
-
             // Update dropIndex to a valid value if needed
             if (dropIndex >= dropList.size()) {
                 dropIndex = dropList.size() - 1;
             }
             if (dropIndex < 0) dropIndex = 0;
 
+            // Update current editing drop index
+            currentEditingDropIndex = dropIndex;
+
             // Update the title text
-            int dropCurrentIndex = dropIndex + 1;
-            if(dropIndex > 0)
-                binding.dropmaplocation.setText("Drop Location " + dropCurrentIndex);
-            else
-                binding.dropmaplocation.setText("Drop Location");
+            updateDropLocationTitle();
 
             // Update camera position to show the current drop location
             updateCameraAfterDropRemoval();
         }
     }
+
+    private void updatePickupLocationDisplay() {
+        if (pickup != null) {
+            String pickupContact = pickup.getRname() + " • " + pickup.getRmobile();
+            binding.txtPickupContact.setText(pickupContact);
+            binding.txtPickupAddress.setText(pickup.getAddress());
+        }
+    }
+
+
+
+    private void setupDropRecycler() {
+        dropLocationAdapter = new DropLocationAdapter(dropList, MAX_DROP_LOCATIONS, new DropLocationAdapter.DropActionListener() {
+            @Override
+            public void onEdit(int position) {
+                // Set the current drop index and update UI
+                dropIndex = position;
+                currentEditingDropIndex = position;
+                dropLocationAdapter.setEditingIndex(position);
+                updateDropLocationTitle();
+                Toast.makeText(GoodsDriverMapDropLocationActivity.this, "Editing Drop " + (position + 1), Toast.LENGTH_SHORT).show();
+                editDrop(position);
+            }
+            @Override
+            public void onSearch(int position) {
+                // Set the current drop index and open search
+                dropIndex = position;
+                currentEditingDropIndex = position;
+                dropLocationAdapter.setEditingIndex(position);
+                updateDropLocationTitle();
+                searchDrop(position);
+            }
+
+            @Override
+            public void onRemove(int position) {
+                removeDrop(position);
+            }
+
+            @Override
+            public void onAddStop() {
+                // Add new drop
+                addNewDrop();
+            }
+        });
+
+        binding.recyclerDropLocations.setLayoutManager(new LinearLayoutManager(this));
+        binding.recyclerDropLocations.setAdapter(dropLocationAdapter);
+    }
+
+
+
+    private void editPickupLocation() {
+        // Save current drop list to preserve it during pickup editing
+        ArrayList<Drop> currentDrops = new ArrayList<>(dropList);
+
+        // Go to pickup location editing screen
+        Glb.showPickup = true;
+        Intent intent = new Intent(GoodsDriverMapDropLocationActivity.this, GoodsPickupMapLocationActivity.class);
+        intent.putExtra("category_id", categoryId);
+        intent.putExtra("category_name", categoryName);
+        intent.putExtra("cab", cabService);
+        intent.putExtra("preserve_drops", true);
+        intent.putParcelableArrayListExtra("current_drops", currentDrops);
+        startActivity(intent);
+        finish();
+    }
+
+    private void searchDropLocation() {
+        dropIndex = 0; // For single drop, always use index 0
+        showCustomPlacesSearch();
+    }
+
+    private void updateDropLocationTitle() {
+        int dropCurrentIndex = currentEditingDropIndex + 1;
+        if(currentEditingDropIndex > 0)
+            binding.dropmaplocation.setText("Drop Location " + dropCurrentIndex);
+        else
+            binding.dropmaplocation.setText("Drop Location");
+    }
+
+
 
     private void updateCameraAfterDropRemoval() {
         if (mMap == null || dropList == null || dropList.isEmpty()) return;
@@ -1165,11 +1229,7 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
                 }
 
                 // Update the title text
-                int dropCurrentIndex = dropIndex + 1;
-                if(dropIndex > 0)
-                    binding.dropmaplocation.setText("Drop Location " + dropCurrentIndex);
-                else
-                    binding.dropmaplocation.setText("Drop Location");
+                updateDropLocationTitle();
 
             } else {
                 // If no valid drops, show pickup location
@@ -1181,7 +1241,7 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
 
                 // Reset to first drop
                 dropIndex = 0;
-                binding.dropmaplocation.setText("Drop Location");
+                updateDropLocationTitle();
             }
 
         } catch (Exception e) {
@@ -1249,9 +1309,15 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
                     String address = userAddress.getString("drop_fulladdress");
                     if (address != null) {
                         binding.txtAddress.setText(address);
-                        // Only set search text if not initial load and not showing exact location
-                        if (showRecentSearchAddress) {
-//                            binding.edSearch.setText(address);
+
+                        // Update the current drop with the address from map
+                        if (currentEditingDropIndex >= 0 && currentEditingDropIndex < dropList.size()) {
+                            Drop drop = dropList.get(currentEditingDropIndex);
+                            drop.setLat(latitude);
+                            drop.setLog(longitude);
+                            drop.setAddress(address);
+                            dropList.set(currentEditingDropIndex, drop);
+                            dropLocationAdapter.notifyItemChanged(currentEditingDropIndex);
                         }
 
                         binding.locationMarkertext.setVisibility(View.VISIBLE);
@@ -1341,11 +1407,28 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
             }
             cursor.close();
 
+            // Clean phone number - remove all non-numeric characters
+            String cleanPhoneNumber = phoneNumber.replaceAll("[^0-9]", "");
 
+            // Handle different phone number formats
+            if (cleanPhoneNumber.startsWith("91") && cleanPhoneNumber.length() == 12) {
+                cleanPhoneNumber = cleanPhoneNumber.substring(2);
+            } else if (cleanPhoneNumber.startsWith("+91") && cleanPhoneNumber.length() == 13) {
+                cleanPhoneNumber = cleanPhoneNumber.substring(3);
+            }
 
             if (edName != null && edMobile != null) {
                 edName.setText(name);
-                edMobile.setText(phoneNumber.replaceAll("[^0-9]", "")); // Remove non-numeric characters
+                edMobile.setText(cleanPhoneNumber);
+
+                // Update the drop list with contact details
+                if (dropIndex >= 0 && dropIndex < dropList.size()) {
+                    Drop drop = dropList.get(dropIndex);
+                    drop.setRname(name);
+                    drop.setRmobile(cleanPhoneNumber);
+                    dropList.set(dropIndex, drop);
+                    dropLocationAdapter.notifyItemChanged(dropIndex);
+                }
             }
         }
     }
@@ -1366,10 +1449,10 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
         EditText searchEditText = view.findViewById(R.id.searchEditText);
         RecyclerView recyclerView = view.findViewById(R.id.recentSearchesRecyclerView);
         TextView recentSearchesTitle = view.findViewById(R.id.recentSearchesTitle);
-        int dropCurrentIndex = dropIndex + 1;
+        int dropCurrentIndex = currentEditingDropIndex + 1;
 
-        if(dropIndex>0)
-            searchEditText.setHint("Where is your Drop "+dropCurrentIndex+" Location? ");
+        if(currentEditingDropIndex > 0)
+            searchEditText.setHint("Where is your Drop " + dropCurrentIndex + " Location? ");
         else{
             searchEditText.setHint("Where is your Drop Location? ");
         }
@@ -1388,14 +1471,26 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
         List<RecentSearch> recentSearches = getRecentSearches();
         RecentSearchAdapter recentAdapter = new RecentSearchAdapter(recentSearches,
                 search -> {
-            if(dropIndex>0) {
-                dropList.get(dropIndex).setAddress(search.getAddress());
-                dropLocationAdapter.notifyDataSetChanged();
-            }
+                    // Ensure dropList is properly initialized
+                    if (dropList == null) {
+                        dropList = new ArrayList<>();
+                    }
+                    if (dropList.isEmpty()) {
+                        dropList.add(new Drop());
+                    }
+                    // Update the correct drop in the list
+                    System.out.println("D_currentEditingDropIndex::"+currentEditingDropIndex +" dropList.size()::"+dropList.size());
+                    if (currentEditingDropIndex >= 0 && currentEditingDropIndex < dropList.size()) {
+                        Drop drop = dropList.get(currentEditingDropIndex);
+                        drop.setLat(search.getLatitude());
+                        drop.setLog(search.getLongitude());
+                        drop.setAddress(search.getAddress());
+                        dropList.set(currentEditingDropIndex, drop);
+                        dropLocationAdapter.notifyItemChanged(currentEditingDropIndex);
+                    }
                     dialog.dismiss();
                     moveCamera(search.getLatitude(), search.getLongitude());
                     showBottomConfirmDialog();
-//                    binding.edSearch.setText(search.getAddress());
                 });
 
         // Show recent searches initially
@@ -1537,15 +1632,28 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
                                                     latLng.longitude,
                                                     distance
                                             ));
-
-                                            if(dropIndex>0) {
-                                                dropList.get(dropIndex).setAddress(address);
-                                                dropLocationAdapter.notifyDataSetChanged();
+                                            // Ensure dropList is properly initialized
+                                            if (dropList == null) {
+                                                dropList = new ArrayList<>();
                                             }
+                                            if (dropList.isEmpty()) {
+                                                dropList.add(new Drop());
+                                            }
+
+                                            System.out.println("D_from_place_search_result_clicked - currentEditingDropIndex::"+currentEditingDropIndex+"  dropList.size()::"+dropList.size());
+                                            // Update the correct drop in the list
+                                            if (currentEditingDropIndex >= 0 && currentEditingDropIndex < dropList.size()) {
+                                                Drop drop = dropList.get(currentEditingDropIndex);
+                                                drop.setLat(latLng.latitude);
+                                                drop.setLog(latLng.longitude);
+                                                drop.setAddress(address);
+                                                dropList.set(currentEditingDropIndex, drop);
+                                                dropLocationAdapter.notifyItemChanged(currentEditingDropIndex);
+                                            }
+
                                             dialog.dismiss();
                                             moveCamera(latLng.latitude, latLng.longitude);
                                             showBottomConfirmDialog();
-//                                            binding.edSearch.setText(name != null ? name : address);
                                         }
                                     });
                         }
@@ -1610,6 +1718,10 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
         mMap.clear();
         showExactLocation = false;
         LatLng coordinate = new LatLng(lat, lng);
+
+        // Update current coordinates for the bottom sheet dialog
+        latitude = lat;
+        longitude = lng;
 
         // Smooth camera movement
         CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(coordinate, 100);

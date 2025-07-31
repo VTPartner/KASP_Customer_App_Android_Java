@@ -206,6 +206,7 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
     }
 
     private void createDriverMarker(String driverId, LatLng position, String vehicleMapImage) {
+        if(vehicleMapImage == null|| vehicleMapImage.isEmpty() || vehicleMapImage.equalsIgnoreCase("NA")) return;
         // Load vehicle image from URL using Glide
         Glide.with(this)
                 .asBitmap()

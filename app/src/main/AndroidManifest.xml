@@ -39,10 +39,12 @@
             android:exported="false" />
         <activity
             android:name=".coins.BottomSheets.FilterBottomSheet"
-            android:exported="false" />
+            android:exported="false"
+            tools:ignore="Instantiatable" />
         <activity
             android:name=".coins.BottomSheets.HowToEarnCoinsBottomSheet"
-            android:exported="false" />
+            android:exported="false"
+            tools:ignore="Instantiatable" />
         <activity
             android:name=".coins.CoinsHistoryActivity"
             android:exported="false" />
