@@ -2,6 +2,7 @@ package com.kapstranspvtltd.kaps.activities.goods_service_booking_activities;
 
 import static com.kapstranspvtltd.kaps.utility.SessionManager.dropList;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -591,6 +592,7 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
 
         runOnUiThread(() -> {
             // Update distance and time
+            binding.btnProce.setEnabled(true);
             exactTime = durationText;
             exactDistance = distanceText;
             binding.txtTotalDistance.setText(distanceText);
@@ -641,7 +643,7 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
         }
 
         @Override
-        public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
+        public void onBindViewHolder(@NonNull MyViewHolder holder, @SuppressLint("RecyclerView") int position) {
             Drop item = dropList.get(position);
             holder.binding.txtDropaddress.setText(item.getAddress());
             holder.binding.imgDelete.setVisibility(position == 0 ? View.GONE : View.VISIBLE);

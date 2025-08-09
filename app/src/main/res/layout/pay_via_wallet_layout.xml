@@ -99,6 +99,7 @@
                 <LinearLayout
                     android:layout_width="60dp"
                     android:layout_height="60dp"
+                    android:visibility="gone"
                     android:gravity="center">
 
                     <ImageView
@@ -106,6 +107,7 @@
                         android:layout_width="50dp"
                         android:layout_height="wrap_content"
                         android:padding="5dp"
+                        android:visibility="gone"
                         android:src="@drawable/cash"
 
                         />
@@ -122,6 +124,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:maxLines="2"
+                        android:visibility="gone"
                         android:textSize="12dp"
                         android:padding="2dp"
                         android:text="Pay on Delivery"
@@ -134,6 +137,7 @@
                         android:layout_height="wrap_content"
                         android:maxLines="2"
                         android:padding="2dp"
+                        android:visibility="gone"
                         android:textColor="@color/light_blue"
                         android:text="You can pay after receiving the service or product at your doorstep."
                         android:textSize="10dp"
@@ -144,12 +148,25 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:maxLines="2"
-                        android:padding="4dp"
+                        android:padding="10dp"
                         android:textAlignment="center"
                         android:textColor="@color/white"
                         android:text="Book Now"
-                        android:textSize="12dp"
+                        android:textSize="14dp"
                         android:textStyle="bold" />
+
+                    <TextView
+
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:maxLines="2"
+
+                        android:textAlignment="center"
+                        android:textColor="@color/light_blue"
+                        android:text="You can pay after receiving the service or product at your doorstep."
+                        android:textSize="10dp"
+                        android:visibility="gone"
+                        android:textStyle="normal" />
 
 
                 </LinearLayout>
@@ -165,7 +182,7 @@
         <TextView
             android:id="@+id/btn_booktrip"
             android:layout_width="match_parent"
-            android:layout_height="32dp"
+            android:layout_height="42dp"
             android:background="@drawable/rounded_button"
             android:gravity="center"
             android:text=" Book Now"

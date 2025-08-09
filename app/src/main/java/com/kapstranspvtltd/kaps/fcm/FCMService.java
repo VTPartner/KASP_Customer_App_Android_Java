@@ -182,7 +182,7 @@ public class FCMService extends FirebaseMessagingService {
                 case "end_live_tracking":
                     preferenceManager.saveBooleanValue("live_ride",false);
                     preferenceManager.saveStringValue("current_booking_id","");
-                    handleEndLiveTracking();
+                    handleEndLiveTracking(data);
                     break;
 
                 case "end_cab_live_tracking":
@@ -394,7 +394,8 @@ public class FCMService extends FirebaseMessagingService {
         startActivity(intent);
     }
 
-    private void handleEndLiveTracking() {
+    private void handleEndLiveTracking(Map<String, String> data) {
+        String orderID = data.get("order_id");
         new Handler(Looper.getMainLooper()).post(() -> {
             Toast.makeText(
                     getApplicationContext(),
@@ -407,6 +408,7 @@ public class FCMService extends FirebaseMessagingService {
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | 
                               Intent.FLAG_ACTIVITY_CLEAR_TOP | 
                               Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                intent.putExtra("order_id", orderID);
                 startActivity(intent);
 
                 sendBroadcast(new Intent("FINISH_EXISTING_ACTIVITIES"));

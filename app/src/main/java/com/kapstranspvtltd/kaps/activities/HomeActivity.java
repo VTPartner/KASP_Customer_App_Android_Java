@@ -12,6 +12,10 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.RatingBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -20,7 +24,10 @@ import androidx.fragment.app.FragmentTransaction;
 
 import com.android.volley.Request;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.bumptech.glide.Glide;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.kapstranspvtltd.kaps.fcm.AccessToken;
 import com.kapstranspvtltd.kaps.fragments.AccountSettingsFragment;
@@ -34,6 +41,7 @@ import com.kapstranspvtltd.kaps.utility.Utility;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.databinding.ActivityHomeBinding;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
@@ -119,7 +127,7 @@ public class HomeActivity extends BaseActivity implements BottomNavigationView.O
                 .setNegativeButton("Cancel", null)
                 .show();
     }
-
+    String orderID = "";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -127,7 +135,7 @@ public class HomeActivity extends BaseActivity implements BottomNavigationView.O
         setContentView(binding.getRoot());
         requestNotificationPermission();
         preferenceManager = new PreferenceManager(this);
-
+        orderID = getIntent().getStringExtra("order_id");
         binding.bottomNavigation.setOnNavigationItemSelectedListener(this);
 
         requestPermissions(new String[]{Manifest.permission.CALL_PHONE, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 101);
@@ -140,7 +148,118 @@ public class HomeActivity extends BaseActivity implements BottomNavigationView.O
         }
         executorService = Executors.newSingleThreadExecutor();
         getFCMToken();
+
+        if(orderID !=null && !orderID.isEmpty()){
+            showRatingDialog();
+        }
     }
+
+    private void showRatingDialog() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View sheetView = getLayoutInflater().inflate(R.layout.layout_rate_driver, null);
+        dialog.setContentView(sheetView);
+
+        // Initialize views
+        ImageView driverImage = sheetView.findViewById(R.id.driverImage);
+        TextView driverName = sheetView.findViewById(R.id.driverName);
+        TextView orderNumber = sheetView.findViewById(R.id.orderNumber);
+        RatingBar ratingBar = sheetView.findViewById(R.id.ratingBar);
+        TextView ratingDescription = sheetView.findViewById(R.id.ratingDescription);
+//        EditText commentBox = sheetView.findViewById(R.id.commentBox);
+        MaterialButton submitButton = sheetView.findViewById(R.id.submitButton);
+
+        driverName.setVisibility(View.GONE);
+        driverImage.setVisibility(View.GONE);
+        orderNumber.setText("Order #" + orderID);
+
+        // Set default rating
+        ratingBar.setRating(3);
+        updateRatingDescription(ratingDescription, 3);
+
+        // Rating change listener
+        ratingBar.setOnRatingBarChangeListener((rBar, rating, fromUser) -> {
+            updateRatingDescription(ratingDescription, rating);
+        });
+
+        // Submit button click
+        submitButton.setOnClickListener(v -> {
+            submitRating(
+                    dialog,
+                    (int) ratingBar.getRating(),
+                    ratingDescription.getText().toString().trim()
+            );
+        });
+
+        dialog.show();
+    }
+
+    private void updateRatingDescription(TextView descriptionView, float rating) {
+        String description;
+        int color;
+
+        if (rating <= 1) {
+            description = "Worst Experience";
+            color = getResources().getColor(R.color.colorerror);
+        } else if (rating <= 2) {
+            description = "Bad";
+            color = getResources().getColor(R.color.orange);
+        } else if (rating <= 3) {
+            description = "Good";
+            color = getResources().getColor(R.color.colorPrimaryDark);
+        } else if (rating <= 4) {
+            description = "Very Good";
+            color = getResources().getColor(R.color.green);
+        } else {
+            description = "Excellent";
+            color = getResources().getColor(R.color.green);
+        }
+
+        descriptionView.setText(description);
+        descriptionView.setTextColor(color);
+    }
+
+    private void submitRating(BottomSheetDialog dialog, int rating, String comment) {
+        if (orderID == null || orderID.isEmpty()) return;
+
+
+        String customerId = preferenceManager.getStringValue("customer_id");
+        String fcmToken = preferenceManager.getStringValue("fcm_token");
+
+        JSONObject params = new JSONObject();
+        try {
+            params.put("order_id", orderID);
+            params.put("ratings", rating);
+            params.put("ratings_description", comment);
+            params.put("customer_id", customerId);
+            params.put("auth", fcmToken);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST,
+                APIClient.baseUrl + "save_order_ratings",
+                params,
+                response -> {
+
+                    dialog.dismiss();
+                    Toast.makeText(this, "Rating submitted successfully", Toast.LENGTH_SHORT).show();
+
+                },
+                error -> {
+
+                    Toast.makeText(this, "Failed to submit rating", Toast.LENGTH_SHORT).show();
+                }) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Content-Type", "application/json");
+                return headers;
+            }
+        };
+
+        VolleySingleton.getInstance(this).addToRequestQueue(request);
+    }
+
 
     private ExecutorService executorService;
     private void getFCMToken() {
