@@ -9,11 +9,11 @@
         android:enabled="true"
         android:icon="@drawable/ic_logistic"
         android:title="@string/orders" />
-<!--    <item-->
-<!--        android:id="@+id/navigation_cab_orders"-->
-<!--        android:enabled="true"-->
-<!--        android:icon="@drawable/ic_logistic"-->
-<!--        android:title="@string/cab_orders" />-->
+    <item
+        android:id="@+id/navigation_cab_orders"
+        android:enabled="true"
+        android:icon="@drawable/ic_logistic"
+        android:title="@string/cab_orders" />
 
     <item
         android:id="@+id/navigation_user"

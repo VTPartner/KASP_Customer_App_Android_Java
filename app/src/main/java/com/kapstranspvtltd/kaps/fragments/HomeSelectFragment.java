@@ -810,8 +810,24 @@ public class HomeSelectFragment extends Fragment {
             System.out.println("🚀 Starting activity with transition");
             startActivityForResult(intent, 100, options.toBundle());
         } else {
-//            intent = new Intent(getActivity(), CabBookingPickupLocationActivity.class);
-            showError("Coming Soon 🚀");
+            intent = new Intent(getActivity(), CabBookingPickupLocationActivity.class);
+            intent.putExtra("category_id", categoryId);
+            intent.putExtra("category_name", categoryName);
+            intent.putExtra("cab", categoryId == 2);
+            intent.putExtra("is_local", isLocal);
+//            showError("Coming Soon 🚀");
+            // Add transition animation flags
+            intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+
+            // Create ActivityOptions for smooth transition
+            ActivityOptions options = ActivityOptions.makeCustomAnimation(
+                    getActivity(),
+                    R.anim.slide_in_right,
+                    R.anim.slide_out_left
+            );
+
+            System.out.println("🚀 Starting activity with transition");
+            startActivityForResult(intent, 100, options.toBundle());
         }
 
 

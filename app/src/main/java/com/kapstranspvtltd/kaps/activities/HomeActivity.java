@@ -482,9 +482,9 @@ public class HomeActivity extends BaseActivity implements BottomNavigationView.O
         } else if (itemId == R.id.navigation_goods_orders) {
             openFragmentIfLoggedIn(new GoodsOrdersFragment(), "Goods");
         }
-//        else if (itemId == R.id.navigation_cab_orders) {
-//            openFragmentIfLoggedIn(new CabOrdersFragment(), "Cab");
-//        }
+        else if (itemId == R.id.navigation_cab_orders) {
+            openFragmentIfLoggedIn(new CabOrdersFragment(), "Cab");
+        }
         else if (itemId == R.id.navigation_user) {
             openFragmentIfLoggedIn(new AccountSettingsFragment(), "Account");
         } else {
