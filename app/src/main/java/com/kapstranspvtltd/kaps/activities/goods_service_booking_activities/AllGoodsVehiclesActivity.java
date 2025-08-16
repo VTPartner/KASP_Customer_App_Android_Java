@@ -37,6 +37,7 @@ import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.Drop;
 import com.kapstranspvtltd.kaps.utility.Pickup;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -72,7 +73,7 @@ public class AllGoodsVehiclesActivity extends AppCompatActivity implements Goods
         super.onCreate(savedInstanceState);
         binding = ActivityAllGoodsVehiclesBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
         preferenceManager = new PreferenceManager(this);
 
         // Get intent data

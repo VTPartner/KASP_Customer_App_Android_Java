@@ -20,6 +20,7 @@ import com.kapstranspvtltd.kaps.databinding.ActivityCoinsHistoryBinding;
 import com.kapstranspvtltd.kaps.network.VolleySingleton;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -40,7 +41,7 @@ public class CoinsHistoryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityCoinsHistoryBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
         preferenceManager = new PreferenceManager(this);
         adapter = new CoinsTransactionAdapter();
 

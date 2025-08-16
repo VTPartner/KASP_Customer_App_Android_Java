@@ -14,6 +14,7 @@ import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.databinding.ActivityCustomerEditProfileBinding;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,6 +34,8 @@ public class CustomerEditProfileActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityCustomerEditProfileBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
 
         // Setup toolbar
 //        setSupportActionBar(binding.toolbar);

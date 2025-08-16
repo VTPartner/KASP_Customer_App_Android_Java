@@ -46,6 +46,7 @@ import com.kapstranspvtltd.kaps.utility.CustPrograssbar;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.databinding.ActivityOderDetailsScreenBinding;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -82,6 +83,7 @@ public class OrderDetailsScreenActivity extends AppCompatActivity implements OnM
         binding = ActivityOderDetailsScreenBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
         custPrograssbar = new CustPrograssbar();
 
         preferenceManager = new PreferenceManager(this);

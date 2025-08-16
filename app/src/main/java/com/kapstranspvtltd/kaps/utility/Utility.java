@@ -13,6 +13,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
 
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.Status;
@@ -197,5 +200,18 @@ public class Utility {
             // Handle error
             return 0.0;
         }
+    }
+
+    public static void applyEdgeToEdgePadding(View rootView) {
+        ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, insets) -> {
+            WindowInsetsCompat systemInsets = insets;
+            int statusBarHeight = systemInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+            int navBarHeight = systemInsets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+
+            // Add top padding for status bar, bottom padding for nav bar
+            v.setPadding(0, statusBarHeight, 0, navBarHeight);
+
+            return insets;
+        });
     }
 }

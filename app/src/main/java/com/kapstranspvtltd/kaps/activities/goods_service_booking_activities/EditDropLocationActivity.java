@@ -60,6 +60,7 @@ public class EditDropLocationActivity extends AppCompatActivity implements OnMap
         super.onCreate(savedInstanceState);
         binding = ActivityEditDropLocationBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
 
         // Get current location details from intent
         currentLat = getIntent().getDoubleExtra("current_lat", 0);

@@ -29,6 +29,7 @@ import com.kapstranspvtltd.kaps.network.VolleySingleton;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.CustPrograssbar;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
+import com.kapstranspvtltd.kaps.utility.Utility;
 import com.razorpay.Checkout;
 import com.razorpay.PaymentResultListener;
 
@@ -55,6 +56,8 @@ public class WalletActivity extends AppCompatActivity implements PaymentResultLi
         super.onCreate(savedInstanceState);
         binding = ActivityWalletBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
 
         Checkout.preload(getApplicationContext());
 
@@ -169,6 +172,7 @@ public class WalletActivity extends AppCompatActivity implements PaymentResultLi
     public void onPaymentError(int code, String description) {
         runOnUiThread(() -> {
             try {
+                showLoading(false);
                 showError("Payment failed: " + description);
             } catch (Exception e) {
                 e.printStackTrace();

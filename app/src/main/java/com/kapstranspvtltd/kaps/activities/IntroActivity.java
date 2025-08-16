@@ -19,6 +19,7 @@ import com.kapstranspvtltd.kaps.utility.AppContentManager;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 import com.kapstranspvtltd.kaps.utility.SessionManager;
 import com.kapstranspvtltd.kaps.databinding.ActivityIntroBinding;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ public class IntroActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityIntroBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
 
         // Initialize ViewPager
         preferenceManager = new PreferenceManager(this);

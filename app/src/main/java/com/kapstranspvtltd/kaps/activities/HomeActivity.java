@@ -18,7 +18,14 @@ import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContract;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -53,6 +60,11 @@ public class HomeActivity extends BaseActivity implements BottomNavigationView.O
         private ActivityHomeBinding binding;
 
     private static final int NOTIFICATION_PERMISSION_CODE = 100;
+
+    private static final String[] FOREGROUND_PERMS = new String[] {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION};
+
+    private ActivityResultLauncher<String[]> requestForegroundLauncher;
+
 
     PreferenceManager preferenceManager;
 
@@ -106,16 +118,15 @@ public class HomeActivity extends BaseActivity implements BottomNavigationView.O
                         Toast.LENGTH_LONG).show();
 
                 // Optionally open settings
-                showSettingsDialog();
+                showSettingsDialog("Notifications are important for ride updates. Please enable notifications in settings.");
             }
         }
     }
 
-    private void showSettingsDialog() {
+    private void showSettingsDialog(String message) {
         new AlertDialog.Builder(this)
                 .setTitle("Permission Required")
-                .setMessage("Notifications are important for ride updates. " +
-                        "Please enable notifications in settings.")
+                .setMessage(message)
                 .setPositiveButton("Settings", (dialog, which) -> {
                     dialog.dismiss();
                     // Open app settings
@@ -127,18 +138,100 @@ public class HomeActivity extends BaseActivity implements BottomNavigationView.O
                 .setNegativeButton("Cancel", null)
                 .show();
     }
+
+    private boolean shouldShowAnyRationale(String[] perms) {
+        for (String p : perms) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, p)) return true;
+        }
+        return false;
+    }
+
+    public void ensureForegroundLocation() {
+        if (hasForegroundLocation()) {
+            // already granted
+            return;
+        }
+
+        if (shouldShowAnyRationale(FOREGROUND_PERMS)) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Permission needed")
+                    .setMessage("Enable location permission to access all features")
+                    .setCancelable(true)
+                    .setNegativeButton("Not now", null)
+                    .setPositiveButton("Continue", (d, w) -> requestForegroundLauncher.launch(FOREGROUND_PERMS))
+                    .show();
+        } else {
+            requestForegroundLauncher.launch(FOREGROUND_PERMS);
+        }
+    }
+
+    private boolean hasFine() {
+        return ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean hasForegroundLocation() {
+        return hasFine() || ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+
+
     String orderID = "";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityHomeBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+//        applyEdgeToEdgePadding(binding.homeRoot);
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
+//            int bottomInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+            int statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top;
+            // Add padding so icons/text move up above nav bar
+            v.setPadding(
+                    v.getPaddingLeft(),
+                    statusBarHeight,
+                    v.getPaddingRight(),
+                    v.getPaddingBottom()
+            );
+
+            binding.bottomNavigation.setPadding(
+                    binding.bottomNavigation.getPaddingLeft(),
+                    binding.bottomNavigation.getPaddingTop(),
+                    binding.bottomNavigation.getPaddingRight(),
+                    statusBarHeight
+            );
+
+            return WindowInsetsCompat.CONSUMED;
+        });
+//        Utility.applyEdgeToEdgePadding(binding.getRoot());
+
+        requestForegroundLauncher = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+            boolean fine = Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_FINE_LOCATION));
+            boolean coarse = Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_COARSE_LOCATION));
+
+            if (fine || coarse) {
+                //permission granted
+            }else  {
+                if (!shouldShowAnyRationale(FOREGROUND_PERMS)) {
+                    showSettingsDialog("Location permission required to access app features. Please enable it from setting");
+                }else  {
+                    Toast.makeText(this, "Location permission denied. You may miss important features.", Toast.LENGTH_LONG).show();
+                }
+            }
+
+        });
+
+
         requestNotificationPermission();
+        ensureForegroundLocation();
         preferenceManager = new PreferenceManager(this);
         orderID = getIntent().getStringExtra("order_id");
         binding.bottomNavigation.setOnNavigationItemSelectedListener(this);
 
-        requestPermissions(new String[]{Manifest.permission.CALL_PHONE, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 101);
+//        requestPermissions(new String[]{Manifest.permission.CALL_PHONE, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 101);
         final LocationManager manager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER) && Utility.hasGPSDevice(this)) {
             Toast.makeText(this, "Gps not enabled", Toast.LENGTH_SHORT).show();
@@ -346,7 +439,6 @@ public class HomeActivity extends BaseActivity implements BottomNavigationView.O
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
         // Get the current fragment
         Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.container);
 
@@ -355,7 +447,10 @@ public class HomeActivity extends BaseActivity implements BottomNavigationView.O
             showExitDialog();
         } else {
             // For other fragments, navigate back to home
-            openFragment(new HomeSelectFragment(), "Home");
+            super.onBackPressed();
+            getSupportFragmentManager().popBackStack();
+            binding.bottomNavigation.setSelectedItemId(R.id.navigation_home);
+//            openFragment(new HomeSelectFragment(), "Home");
         }
     }
 

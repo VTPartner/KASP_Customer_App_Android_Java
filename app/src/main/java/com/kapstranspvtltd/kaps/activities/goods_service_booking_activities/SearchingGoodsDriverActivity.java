@@ -54,6 +54,7 @@ import com.kapstranspvtltd.kaps.utility.Drop;
 import com.kapstranspvtltd.kaps.utility.Pickup;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.databinding.ActivitySearchingGoodsDriverBinding;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -90,7 +91,7 @@ public class SearchingGoodsDriverActivity extends BaseActivity implements OnMapR
         super.onCreate(savedInstanceState);
         binding = ActivitySearchingGoodsDriverBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             requestPermissions(new String[]{Manifest.permission.CALL_PHONE}, 201);
         }

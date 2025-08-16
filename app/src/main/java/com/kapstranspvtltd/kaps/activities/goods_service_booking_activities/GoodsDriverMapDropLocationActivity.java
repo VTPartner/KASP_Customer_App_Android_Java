@@ -35,6 +35,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -197,6 +198,7 @@ public class GoodsDriverMapDropLocationActivity extends BaseActivity implements 
         super.onCreate(savedInstanceState);
         binding = ActivityGoodsDriverMapDropLocationBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
         preferenceManager = new PreferenceManager(this);
         if (!Places.isInitialized()) {
             Places.initialize(getApplicationContext(), getString(R.string.google_maps_key), Locale.US);
@@ -877,6 +879,7 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
         if (mapFragment != null) {
             // Use async map loading
             mapFragment.getMapAsync(googleMap -> {
+//                googleMap.setPadding(0,0,0,100);
                 mMap = googleMap;
                 configureMap();
                 onMapReady(googleMap);
@@ -896,6 +899,8 @@ if(edMobile.getText().toString().trim().isEmpty() || edName.getText().toString()
         mMap.getUiSettings().setTiltGesturesEnabled(true);
         mMap.setMaxZoomPreference(20);
         mMap.setMinZoomPreference(10);
+
+        mMap.setPadding(0,0,0,100);
 
         // Enable hardware acceleration for the map
         View mapView = getSupportFragmentManager().findFragmentById(R.id.map).getView();

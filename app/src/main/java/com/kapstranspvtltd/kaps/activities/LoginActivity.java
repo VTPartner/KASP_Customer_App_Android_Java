@@ -53,6 +53,7 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
 
         // Load dynamic content
         loadDynamicContent();

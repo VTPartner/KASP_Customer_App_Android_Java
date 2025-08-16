@@ -3,7 +3,6 @@ package com.kapstranspvtltd.kaps;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.widget.ImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -16,7 +15,7 @@ import com.kapstranspvtltd.kaps.model.AppContent;
 import com.kapstranspvtltd.kaps.utility.AppContentManager;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 import com.kapstranspvtltd.kaps.utility.SessionManager;
-import com.kapstranspvtltd.kaps.R;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 public class SplashScreenActivity extends AppCompatActivity {
 
@@ -28,6 +27,8 @@ public class SplashScreenActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash_screen);
+        Utility.applyEdgeToEdgePadding(findViewById(R.id.splashParentId));
+
         preferenceManager = new PreferenceManager(this);
 
         // Load splash screen content (already fetched in MyApplication)

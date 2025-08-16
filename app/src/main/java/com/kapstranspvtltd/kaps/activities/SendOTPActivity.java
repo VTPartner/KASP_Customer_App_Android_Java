@@ -28,6 +28,7 @@ import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 import com.kapstranspvtltd.kaps.model.AppContent;
 import com.kapstranspvtltd.kaps.utility.AppContentManager;
 import com.kapstranspvtltd.kaps.databinding.ActivitySendOtpactivityBinding;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -53,6 +54,7 @@ public class SendOTPActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivitySendOtpactivityBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
 
         custPrograssbar = new CustPrograssbar();
 
@@ -456,7 +458,7 @@ public class SendOTPActivity extends AppCompatActivity {
 
     private void sendOTP() {
         showLoading();
-if(mobileNumber.equalsIgnoreCase("8296565587")){
+if(mobileNumber.equalsIgnoreCase("9876543210")){
     verifyOTPAndLogin();
     return;
 }

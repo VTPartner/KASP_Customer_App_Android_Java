@@ -67,6 +67,7 @@ import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.databinding.ActivityReviewMapBinding;
 import com.kapstranspvtltd.kaps.databinding.ItemDropBinding;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -279,6 +280,7 @@ public class ReviewMapActivity extends BaseActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         binding = ActivityReviewMapBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
 
         preferenceManager = new PreferenceManager(this);
         // Initialize ExecutorService

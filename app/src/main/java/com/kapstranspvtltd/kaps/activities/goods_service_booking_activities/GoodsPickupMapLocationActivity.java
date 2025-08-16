@@ -142,6 +142,7 @@ public class GoodsPickupMapLocationActivity extends BaseActivity implements OnMa
 
         binding = ActivityGoodsPickupMapLocationBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
 
         if (!Places.isInitialized()) {
             Places.initialize(getApplicationContext(), getString(R.string.google_maps_key), Locale.US);
@@ -707,7 +708,10 @@ public class GoodsPickupMapLocationActivity extends BaseActivity implements OnMa
         View sheetView = getLayoutInflater().inflate(R.layout.customeconfirmdetails, null);
         dialog.setContentView(sheetView);
 
-        String fulladdress = addressBundle.getString("fulladdress");
+        String fulladdress = null;
+        if (addressBundle != null) {
+            fulladdress = addressBundle.getString("fulladdress");
+        }
 
         TextView pickupLabel = sheetView.findViewById(R.id.labelPickup);
         TextView pickupAddress = sheetView.findViewById(R.id.confirm_pickaddress);
@@ -757,7 +761,11 @@ if(cabService){
             }
          dialog.dismiss();
 //                proceedToNextScreen(name,mobile);
+            if (latitude != null && longitude != null) {
                 checkPincodeAndShowDialog(latitude,longitude,name,mobile);
+            }else  {
+                showError("Unable to get location details");
+            }
 
         });
 
@@ -1137,6 +1145,9 @@ if(cabService){
                                             binding.edSearch.setText(name != null ? name : address);
                                         }
                                     });
+                        }else  {
+                            dialog.dismiss();
+                            showError("Location permission required");
                         }
                     }
                 })

@@ -30,6 +30,7 @@ import com.kapstranspvtltd.kaps.network.VolleySingleton;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 import com.kapstranspvtltd.kaps.utility.SessionManager;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 
 import org.json.JSONArray;
@@ -79,7 +80,7 @@ public class InviteEarnActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_invite_earn);
-
+        Utility.applyEdgeToEdgePadding(findViewById(R.id.inviteEarnRoot));
         preferenceManager = new PreferenceManager(this);
 
         initializeViews();

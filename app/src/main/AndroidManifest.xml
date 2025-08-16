@@ -27,15 +27,19 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.packaged.NoActionBar"
         android:usesCleartextTraffic="true"
+        tools:ignore="LockedOrientationActivity"
         tools:targetApi="31">
         <activity
             android:name=".activities.EnterReferralActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".activities.InviteEarnActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".coins.CoinTransferToWalletActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".coins.BottomSheets.FilterBottomSheet"
@@ -47,27 +51,34 @@
             tools:ignore="Instantiatable" />
         <activity
             android:name=".coins.CoinsHistoryActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".coins.CoinsHomeScreenActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".activities.goods_service_booking_activities.EditDropLocationActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".common_activities.LocationSearchActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".activities.goods_service_booking_activities.GoodsBookingNewActivity"
             android:exported="false" />
         <activity
             android:name=".activities.goods_service_booking_activities.AllGoodsVehiclesActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".common_activities.ScheduledBookingsActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".common_activities.ServiceBookingReviewActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".common_activities.ServiceDurationActivity"
@@ -164,36 +175,44 @@
             android:exported="false" />
         <activity
             android:name=".activities.goods_service_booking_activities.CouponCodeActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".activities.WalletActivity"
             android:exported="false" />
         <activity
             android:name=".activities.CustomerEditProfileActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".activities.goods_service_booking_activities.WebViewActivity"
             android:exported="false" />
         <activity
             android:name=".activities.goods_service_booking_activities.SearchingGoodsDriverActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".activities.goods_service_booking_activities.BookingReviewScreenActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".activities.goods_service_booking_activities.ReviewMapActivity"
             android:exported="false" />
         <activity
             android:name=".activities.goods_service_booking_activities.GoodsDriverMapDropLocationActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".activities.goods_service_booking_activities.GoodsPickupMapLocationActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".activities.OrderDetailsScreenActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".activities.OngoingGoodsDetailActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".activities.BaseActivity"
@@ -206,6 +225,7 @@
             android:exported="false" />
         <activity
             android:name=".activities.HomeActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".activities.LoginActivity"
@@ -215,6 +235,7 @@
             android:exported="false" />
         <activity
             android:name=".SplashScreenActivity"
+            android:screenOrientation="portrait"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

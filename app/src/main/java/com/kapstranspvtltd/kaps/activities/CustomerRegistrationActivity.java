@@ -23,6 +23,7 @@ import com.kapstranspvtltd.kaps.utility.LocationHelper;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.databinding.ActivityCustomerRegistrationBinding;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 import org.json.JSONObject;
 
@@ -43,6 +44,7 @@ public class CustomerRegistrationActivity extends BaseActivity {
         binding = ActivityCustomerRegistrationBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
         locationHelper = new LocationHelper(this);
         preferenceManager = new PreferenceManager(this);
         requestQueue = Volley.newRequestQueue(this);

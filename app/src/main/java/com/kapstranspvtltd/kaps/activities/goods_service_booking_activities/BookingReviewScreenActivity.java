@@ -75,6 +75,7 @@ import com.kapstranspvtltd.kaps.utility.PreferenceManager;
 import com.kapstranspvtltd.kaps.utility.SessionManager;
 import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.databinding.ActivityBookingReviewScreenBinding;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -160,6 +161,8 @@ public class BookingReviewScreenActivity extends BaseActivity implements Vehicle
         super.onCreate(savedInstanceState);
         binding = ActivityBookingReviewScreenBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
+
         preferenceManager = new PreferenceManager(this);
 
         selectedVehicle = Glb.selectedVehicle;

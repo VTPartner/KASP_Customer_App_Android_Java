@@ -17,6 +17,7 @@ import com.kapstranspvtltd.kaps.databinding.ActivityScheduledBookingsBinding;
 import com.kapstranspvtltd.kaps.network.VolleySingleton;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -41,6 +42,8 @@ public class ScheduledBookingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityScheduledBookingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
 
         preferenceManager = new PreferenceManager(this);
         setupToolbar();

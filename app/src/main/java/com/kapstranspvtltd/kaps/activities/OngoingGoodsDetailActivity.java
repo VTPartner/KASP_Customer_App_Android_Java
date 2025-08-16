@@ -101,6 +101,7 @@ import com.kapstranspvtltd.kaps.R;
 import com.kapstranspvtltd.kaps.databinding.ActivityOngoingGoodsDetailBinding;
 import com.kapstranspvtltd.kaps.databinding.DialogPaymentDetailsBinding;
 import com.kapstranspvtltd.kaps.utility.UnloadingTimerManager;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -190,6 +191,7 @@ public class OngoingGoodsDetailActivity extends AppCompatActivity implements OnM
         super.onCreate(savedInstanceState);
         binding = ActivityOngoingGoodsDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        Utility.applyEdgeToEdgePadding(binding.getRoot());
 
         Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.cab);
         Bitmap smallMarker = resizeBitmap(original, 100, 100); // Resize to 100x100

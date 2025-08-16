@@ -21,6 +21,7 @@ import com.kapstranspvtltd.kaps.adapters.CouponAdapter;
 import com.kapstranspvtltd.kaps.model.Coupon;
 import com.kapstranspvtltd.kaps.retrofit.APIClient;
 import com.kapstranspvtltd.kaps.utility.PreferenceManager;
+import com.kapstranspvtltd.kaps.utility.Utility;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -48,6 +49,7 @@ public class CouponCodeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_coupon_code);
+        Utility.applyEdgeToEdgePadding(findViewById(R.id.couponCodeRoot));
         preferenceManager = new PreferenceManager(this);
         // Initialize views
         recyclerView = findViewById(R.id.recycler_view);

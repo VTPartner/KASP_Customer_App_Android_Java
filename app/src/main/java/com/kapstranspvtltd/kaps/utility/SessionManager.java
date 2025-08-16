@@ -6,7 +6,6 @@ import android.preference.PreferenceManager;
 
 import com.google.gson.Gson;
 import com.kapstranspvtltd.kaps.model.SelectAddress;
-import com.pusher.client.channel.User;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,13 +64,13 @@ public class SessionManager {
         return mPrefs.getInt(key, 0);
     }
 
-    public void setUserDetails(User val) {
-        mEditor.putString(user, new Gson().toJson(val));
-        mEditor.commit();
-    }
-    public User getUserDetails() {
-        return new Gson().fromJson(mPrefs.getString(user, ""), User.class);
-    }
+//    public void setUserDetails(User val) {
+//        mEditor.putString(user, new Gson().toJson(val));
+//        mEditor.commit();
+//    }
+//    public User getUserDetails() {
+//        return new Gson().fromJson(mPrefs.getString(user, ""), User.class);
+//    }
 
     public void setAddress(SelectAddress val) {
         mEditor.putString("address", new Gson().toJson(val));
