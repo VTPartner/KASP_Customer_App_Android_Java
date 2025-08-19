@@ -44,6 +44,42 @@
     },
     {
       "client_info": {
+        "mobilesdk_app_id": "1:590399228771:android:9212abcf06907f925fe156",
+        "android_client_info": {
+          "package_name": "com.kapstranspvtltd.kaps.debug"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "590399228771-56bagn674t127um25rbp5toumtpk35e8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQ7ttzeTq4_yjghsU_I8ObU_sj28tLbME"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "590399228771-56bagn674t127um25rbp5toumtpk35e8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "590399228771-5epr00b1g0qiaq34276qduojr6i96aig.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.vtpartnertranspvtltd.vtPartner"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:590399228771:android:ed8c950de6a42bc25fe156",
         "android_client_info": {
           "package_name": "com.tejasvicastautomationpvtltd.vt_partner"

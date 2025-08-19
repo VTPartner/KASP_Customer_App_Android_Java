@@ -9,28 +9,49 @@ android {
     namespace = "com.kapstranspvtltd.kaps"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
+    signingConfigs {
+        create("dev") {
+            storeFile =  file(project.findProperty("DEBUG_STORE_FILE") as String)
+            storePassword =  project.findProperty("DEBUG_STORE_PASSWORD") as String
+            keyAlias =  project.findProperty("DEBUG_KEY_ALIAS") as String
+            keyPassword =  project.findProperty("DEBUG_KEY_PASSWORD") as String
+        }
+
+        create("release") {
+            storeFile =  file(project.findProperty("STORE_FILE") as String)
+            storePassword =  project.findProperty("STORE_PASSWORD") as String
+            keyAlias =  project.findProperty("KEY_ALIAS") as String
+            keyPassword =  project.findProperty("KEY_PASSWORD") as String
+        }
+    }
+
     defaultConfig {
         applicationId = "com.kapstranspvtltd.kaps"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 13
-        versionName = "0.0.1"
+        signingConfig = signingConfigs.getByName("debug")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
-//        getByName("debug") {
-//            applicationIdSuffix = ".debug"
-//            isMinifyEnabled = false
-//            isDebuggable = true
-//        }
+        getByName("debug") {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            isMinifyEnabled = false
+            isDebuggable = false
+            manifestPlaceholders["appName"] = "KAPS Debug"
+            signingConfig = signingConfigs.getByName("dev")
+        }
+
         getByName("release") {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            manifestPlaceholders["appName"] = "KAPS"
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
@@ -44,6 +65,29 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
+    }
+}
+
+fun prop(name: String, fallback: String) = providers.gradleProperty(name).orElse(fallback)
+
+androidComponents {
+    onVariants(selector().withBuildType("debug")) { variant ->
+        val code = prop("DEBUG_VERSION_CODE", "11").map(String::toInt)
+        val name = prop("DEBUG_VERSION_NAME", "1.1.1-fallback-debug")
+        variant.outputs.forEach { out ->
+            out.versionCode.set(code.get())
+            out.versionName.set(name.get())
+        }
+    }
+
+    onVariants(selector().withBuildType("release")) { variant ->
+        val code = prop("RELEASE_VERSION_CODE", "11").map(String::toInt)
+        val name = prop("RELEASE_VERSION_NAME", "1.1.1-fallback")
+        variant.outputs.forEach { out ->
+            out.versionCode.set(code.get())
+            out.versionName.set(name.get())
+        }
     }
 }
 

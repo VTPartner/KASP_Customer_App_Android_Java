@@ -2,6 +2,7 @@ package com.kapstranspvtltd.kaps.fragments;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -97,6 +98,7 @@ public class CabOrdersFragment extends Fragment {
     }
 
     private void fetchRecentBookings() {
+        Log.e("CAB_ORDER","Booking fetched");
         showLoading();
         String customerId = preferenceManager.getStringValue("customer_id");
         String fcmToken = preferenceManager.getStringValue("fcm_token");
@@ -262,6 +264,8 @@ public class CabOrdersFragment extends Fragment {
     }
 
     private void updateRecentBookingsUI(List<Booking> bookings) {
+        if (binding == null) return;
+
         if (bookings == null || bookings.isEmpty()) {
             binding.recycleviewRecent.setVisibility(View.GONE);
             binding.lvlNotfoundRecent.setVisibility(View.VISIBLE);
